@@ -1,0 +1,17 @@
+\begin{tikzpicture}[font=\small, >={Stealth[length=2mm]},
+  box/.style={draw, minimum height=0.9cm, minimum width=1.5cm, inner sep=3pt}]
+  \node (x) at (0,0) {$x$};
+  \node[box, fill=cGrey!25] (W) at (3.2,0.9) {$W$ (frozen)};
+  \node[box, draw=cAttn, line width=1pt, fill=cAttn!12] (A) at (2.3,-0.9) {$A$};
+  \node[box, draw=cAttn, line width=1pt, fill=cAttn!12] (B) at (4.3,-0.9) {$B$};
+  \node[draw, circle, inner sep=1.5pt] (p) at (6.4,0) {$+$};
+  \node (y) at (7.8,0) {$y$};
+  \draw[->] (x) |- (W);
+  \draw[->] (x) |- (A);
+  \draw[->] (A) -- node[above, font=\scriptsize] {rank $r$} (B);
+  \draw[->] (W) -| (p);
+  \draw[->] (B) -| node[pos=0.25, below, font=\scriptsize] {$\times\,\alpha/r$} (p);
+  \draw[->] (p) -- (y);
+  \node[font=\scriptsize, text=cAttn, below=0.05cm of A] {trained};
+  \node[font=\scriptsize, text=cAttn, below=0.05cm of B] {trained, starts at 0};
+\end{tikzpicture}

@@ -1,0 +1,28 @@
+Test accuracy per seed (42, 123, 456):
+  DeiT-B all blocks      [86.7  86.34 86.64]  mean 86.56 ± 0.19
+  DeiT-B blocks 3-11     [86.83 86.46 86.84]  mean 86.71 ± 0.22
+  DeiT-B blocks 6-11     [86.05 85.98 86.69]  mean 86.24 ± 0.39
+  ViT-B all blocks       [91.17 91.12 90.97]  mean 91.09 ± 0.10
+  ViT-B blocks 3-11      [91.01 90.82 91.08]  mean 90.97 ± 0.13
+  ViT-B blocks 6-11      [89.73 89.51 89.61]  mean 89.62 ± 0.11
+
+Predictions (paired per seed, vs all blocks of the same model):
+P1 DeiT-B 6-11 − all: -0.32 ± 0.35  per seed [-0.65 -0.36  0.05]  predicted −1.4 [−2.5, −0.7], all negative -> FAILS
+P2 DeiT-B 3-11 − all: +0.15 ± 0.04  per seed [0.13 0.12 0.2 ]  predicted −0.7 [−1.4, −0.2] -> FAILS
+P3 ViT-B  3-11 − all: -0.12 ± 0.21  per seed [-0.16 -0.3   0.11]  predicted −0.8 [−1.4, −0.2] -> FAILS
+P4 DeiT-B order all > 3-11 > 6-11: 86.56 > 86.71 > 86.24 -> FAILS
+P5 DeiT-B all, seed 456: 86.64  predicted 86.5 ± 0.5 -> HOLDS
+
+reference ViT-B 6-11 − all (same 3 seeds): -1.47 ± 0.13
+share of the k=6 loss already lost at k=3: DeiT-B -0.47, ViT-B 0.08  (linear model: 0.50)
+
+Costs (mean over seeds; epoch times exclude epoch 1):
+C1    deitb_lora_attn_r8_L3-11   peak 4.2600 GiB (seed spread 0.0000; pred 4.26 ± 0.005 -> HOLDS), epoch 278 s (pred 279 -> HOLDS), backward 176.1 ms (pred 177 ± 8 -> HOLDS)
+C1    lora_attn_r8_L3-11         peak 4.2600 GiB (seed spread 0.0000; pred 4.26 ± 0.005 -> HOLDS), epoch 278 s (pred 279 -> HOLDS), backward 176.1 ms (pred 177 ± 8 -> HOLDS)
+C2/C5 deitb_lora_attn_r8_L6-11   peak 3.0610 GiB (seed spread 0.0000; pred 3.061 ± 0.005 -> HOLDS), epoch 233 s (pred 234 -> HOLDS)
+
+Other run facts:
+  deitb_lora_attn_r8         best epochs [6, 7, 8], val loss at kept epoch [0.42   0.4463 0.4326], code {'8cb84ea43319'}
+  deitb_lora_attn_r8_L3-11   best epochs [8, 8, 10], val loss at kept epoch [0.4083 0.4384 0.4237], code {'8cb84ea43319'}
+  deitb_lora_attn_r8_L6-11   best epochs [10, 9, 10], val loss at kept epoch [0.4367 0.4657 0.4453], code {'8cb84ea43319'}
+  lora_attn_r8_L3-11         best epochs [6, 5, 6], val loss at kept epoch [0.3041 0.3276 0.296 ], code {'8cb84ea43319'}

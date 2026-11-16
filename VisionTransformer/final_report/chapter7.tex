@@ -1,0 +1,106 @@
+\chapter{Choosing a Placement under a Training-Memory Budget}
+\label{ch:budget}
+
+The last part of the project took up a question that follows from Chapter~\ref{ch:placement}: given a limit on
+training memory, which LoRA placement should be chosen? The limit is on \emph{training} memory because that is what
+placement changes; inference memory is almost independent of it (Chapter~\ref{ch:deploy}). The study has two halves
+with different outcomes. Following our supervisor's suggestion, the approach was built on ViT-B and Swin-B and
+tested on models not used before: DeiT-B, which has the shape of ViT-B, and ViT-L, which does not.
+
+\section{Predicting peak training memory}
+
+Three measured properties make memory predictable. It is \emph{deterministic}: identical in all seeds, and the same
+with a trained adapter as with a random one. It is \emph{linear in the batch size}: between batch sizes 8 and 256
+the measured peaks deviate from a straight line by at most 0.005~GiB on ViT-B and 0.041~GiB on Swin-B. And it is set
+mainly by the first adapted block (Chapter~\ref{ch:placement}).
+
+Let $s_b$ be the size of the input of block $b$ for one image (tokens $\times$ width $\times$ 4 bytes) and $k$ the
+first adapted block. Following Section~\ref{sec:bg_memory}, we model the activations stored per image as
+\begin{equation}
+  a \;=\; c_\text{reach} \sum_{b \ge k} s_b \;+\; c_\text{attn} \!\!\sum_{b \,\in\, \text{attn-adapted}}\!\! s_b
+        \;+\; c_\text{mlp} \!\!\sum_{b \,\in\, \text{MLP-adapted}}\!\! s_b \;+\; h ,
+  \label{eq:mem}
+\end{equation}
+and the peak for a batch of $B$ images as $\text{resident} + B \cdot a$. The first term is what every block from $k$
+onwards stores because the backward pass goes through it; the second and third are the inputs that the adapters
+themselves need; $h$ is a small constant for the layers outside the blocks. The resident memory (weights,
+gradients, optimiser state and the input batch) follows from the parameter counts. Fitted to the seven ViT-B LoRA
+configurations of Chapters~\ref{ch:lora_ft} and~\ref{ch:placement}, the constants are $c_\text{reach} = 9.95$,
+$c_\text{attn} = 1.34$ and $c_\text{mlp} = 4.86$: a block that the backward pass goes through stores about ten times
+the size of its input, attention adapters add about one more and MLP adapters about five more. When one ViT-B
+configuration is left out of the fit, the formula predicts it to within 3.8\%.
+
+\begin{figure}[!htb]
+\centering
+\input{figures/mem_pred}
+\caption{Peak training memory at batch size 64 for 18 configurations, predicted with the ViT-B constants before
+measuring, against the measurement. ViT-L has a new width and depth; DeiT-B has the shape of ViT-B; Swin-B: start
+blocks 2 to 22.}
+\label{fig:mem_pred}
+\end{figure}
+
+\paragraph{Test.} Before measuring them, we wrote down the predicted peak of 18 new configurations: attention LoRA
+on every block from a start block $k$ to the last on DeiT-B ($k = 0$ to 10) and Swin-B ($k = 2$ to 22), and four
+configurations of ViT-L (Figure~\ref{fig:mem_pred}).
+\begin{itemize}
+  \item \textbf{ViT-L} is the real test, because its width and depth differ from those of ViT-B: the mean error is
+        0.8\% and the largest 1.5\%. The formula also predicted that three of its configurations would not fit on
+        the partition at batch size 256, and all three ran out of memory.
+  \item \textbf{DeiT-B} has the shape of ViT-B, so its agreement (within 1.7\%) shows that memory depends on the
+        shape and not on the weights; it is a consistency check. Each block by which the start moves later saves
+        0.40~GiB, at every step (Figure~\ref{fig:mem_start}).
+  \item \textbf{Swin-B} is predicted to within 4.6\% for start blocks 2 to 16, by constants fitted on a different
+        architecture (1.8\% with constants fitted on Swin-B itself).
+  \item \textbf{One prediction failed.} For Swin-B with adapters on the last two blocks only ($k=22$) the formula
+        predicts 0.90~GiB and the measurement is 1.82~GiB. The formula counts activations that are stored until the
+        backward pass, which are small here (0.27~GiB); the peak is instead set by memory used briefly during the
+        forward pass through the large early stages. The formula needs a lower bound for this temporary memory,
+        which we have not built. Tight budgets lead exactly to such late starts, so this limit matters.
+\end{itemize}
+
+On the memory side, the budget problem therefore needs no search: the budget fixes the earliest possible start
+block. A budget of 4.5~GiB at batch size 64, for example, is met on ViT-B and DeiT-B by starting at block 3
+(4.26~GiB). Which of the placements that fit is the most accurate is a separate question.
+
+\section{Predicting accuracy: a rule that failed}
+
+Chapter~\ref{ch:placement} gave two points per model: adapters from block 0, and from the middle of the model, where
+1.2--1.6~pp are lost. The simplest rule joining them is a straight line. Before the runs we wrote down what it
+predicts for a start at block 3 (a loss of about 0.7--0.8~pp on DeiT-B and ViT-B) and at block 6 on DeiT-B (about
+1.4~pp), each with a range, and we predicted the cost of these runs. All were then trained with three seeds.
+
+\begin{figure}[!htb]
+\centering
+\input{figures/acc_start}
+\caption{Test accuracy of attention LoRA on every block from $k$ to the last, relative to all blocks (paired
+differences, 3 seeds; error bars: standard deviation; ViT-B against all blocks trained in the same set of runs). Grey bars: the ranges predicted before the runs (at $k=3$:
+left DeiT-B, right ViT-B).}
+\label{fig:acc_start}
+\end{figure}
+
+The rule did not hold: a later start cost less than the straight line predicted
+(Figure~\ref{fig:acc_start}; Table~\ref{tab:acc_pred} in the appendix). Both DeiT-B predictions failed, and so did
+the predicted order on DeiT-B. The ViT-B measurement ($-$0.31~pp) lies at the upper edge of its predicted range;
+against the earlier all-blocks runs of Chapter~\ref{ch:placement} it was $-$0.12 $\pm$ 0.21~pp, outside the range.
+The cost predictions held: the training runs reproduced the profiled peak memory to four decimals (4.2600 and
+3.0610~GiB), and the training epoch (278 and 233~s) and the backward pass were predicted to within 1~s and 1~ms.
+\begin{itemize}
+  \item \emph{On DeiT-B, starting at block 3 costs no accuracy in these runs.} It is 0.15 $\pm$ 0.04~pp above all
+        blocks, with the lower validation loss in all three seeds, 22\% less training memory and 14\% shorter
+        training epochs.
+  \item \emph{On ViT-B it has a small cost in these runs}: 0.31 $\pm$ 0.27~pp below all blocks trained in the same
+        set of runs, in all three seeds, with a worse validation loss in all three. Two sets of ViT-B runs differ by
+        up to 0.2~pp in their means (Appendix~\ref{app:impl}), so the size of this cost is uncertain.
+  \item \emph{How much a late start costs depends on the model.} The second half loses 1.66 $\pm$ 0.24~pp on ViT-B
+        and 0.32 $\pm$ 0.35~pp on DeiT-B, which is not detectable (same three seeds), and 1.18 $\pm$ 0.19~pp on Swin-B
+        (5 seeds). ViT-B and
+        DeiT-B have the same architecture and differ only in pretraining, so the shape of a model does not
+        determine this loss.
+  \item \emph{A cheap early indicator does not rank placements reliably.} We ranked the seven LoRA configurations
+        of each model by their validation loss after the first epoch (lowest first) and by their final test accuracy
+        (highest first). The agreement of the two rankings, measured by Kendall's $\tau$ (1 = the same order, 0 =
+        unrelated), is 0.62 on ViT-B and 0.24 on Swin-B: placements that include the early blocks learn slowly
+        at first and finish high.
+\end{itemize}
+DeiT-B is about 4.5~pp less accurate than ViT-B on this task (86.56 $\pm$ 0.19\% for attention LoRA on all blocks),
+probably because it was pretrained on ImageNet-1k only; we did not test this, and DeiT-B was not fully fine-tuned.

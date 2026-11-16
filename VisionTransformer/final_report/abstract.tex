@@ -1,0 +1,20 @@
+\chapter*{\centering Abstract}
+\onehalfspacing
+Low-rank adaptation (LoRA) fine-tunes a pretrained model by training small low-rank matrices next to its frozen
+weights. This report measures what LoRA costs and saves against full fine-tuning for two vision transformers,
+ViT-B/16 and Swin-B, on CIFAR-100, in the same configurations on both models and over five seeds. We ask four
+questions: is LoRA as accurate as full fine-tuning, what does it save during training, where should the adapters be
+placed, and what does it change when the model is deployed.
+
+With the learning rate of each method chosen on validation loss, LoRA at rank 8 is more accurate than full
+fine-tuning on Swin-B (by 0.4--0.5 percentage points for each of three choices of adapted layers). On ViT-B it is
+within about 0.2 points of full fine-tuning and never ahead. Its saving in training memory depends on which layers are adapted,
+in the same way on both models: about a third for the attention projections, a seventh for the MLP layers and about 6\%
+for both, at batch size 64. The saving grows as the batch shrinks, to about 70\% at batch size 1. Training epochs
+are 12--26\% shorter. Within LoRA, the training memory is set mainly by the first block that has an adapter, because
+the backward pass must reach it; adapting only the second half of the blocks needs the least memory but loses
+1.2--1.6 points of accuracy. For deployment, merging the adapters leaves the predictions unchanged and gives the
+memory and speed of an ordinary model, while adapters kept separate slow down single-image predictions by 8--55\% on
+the GPU. A closing study shows that peak training memory can be predicted from the shape of the model before
+measuring it (within 1.5\% on ViT-L), whereas a simple rule for the accuracy of a placement, written down before
+the runs, did not hold.

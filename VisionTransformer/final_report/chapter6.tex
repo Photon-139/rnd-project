@@ -1,0 +1,119 @@
+\chapter{Deployment: Merging, Inference Memory and Latency}
+\label{ch:deploy}
+
+The previous chapters were about training. This chapter asks what LoRA changes once the model is trained and makes
+predictions (inference). A LoRA model can be deployed in two forms: \emph{merged}, with the adapters added into the
+weights, or \emph{unmerged}, with the adapters kept as separate layers. All measurements use the adapters trained
+with seed 42; the procedures are described in Section~\ref{sec:procedures}.
+
+\section{Merging leaves the predictions unchanged}
+
+For all seven LoRA configurations of each model (three targets and four placements), merging does not change the
+predictions:
+\begin{itemize}
+  \item the test accuracy is identical with the adapters unmerged, merged, and after 100 cycles of merging and
+        unmerging, and every one of the 10,000 test images receives the same predicted class;
+  \item on eight random inputs, the largest difference in any of the 100 class scores between the merged and the
+        unmerged model is at most $5.0\times10^{-6}$ on ViT-B and $1.7\times10^{-6}$ on Swin-B, the size of
+        floating-point rounding;
+  \item 100 cycles of merging and unmerging change no weight by more than $1.2\times10^{-7}$.
+\end{itemize}
+The outputs are equal up to rounding, not bit for bit. The check uses one trained adapter per configuration;
+because merging is exact algebra (Chapter~\ref{ch:background}), we do not expect other seeds to behave
+differently. Table~\ref{tab:merge} in the appendix gives the values per configuration.
+
+\section{Inference memory}
+
+\begin{table}[!htb]
+\centering\small
+\begin{tabular}{lcccc}
+\toprule
+ & \multicolumn{2}{c}{ViT-B} & \multicolumn{2}{c}{Swin-B} \\
+configuration & batch 1 & batch 64 & batch 1 & batch 64 \\
+\midrule
+\rawinput{data/tab_infer.tex}
+\bottomrule
+\end{tabular}
+\caption{Peak inference memory (GiB) of a forward pass without gradients, at batch sizes 1 and 64 (profiler). For
+the LoRA configurations: unmerged / merged. The other three placements give the same values as the odd blocks to
+within 0.001~GiB.}
+\label{tab:infer}
+\end{table}
+
+Inference memory hardly depends on LoRA (Table~\ref{tab:infer}).
+\begin{itemize}
+  \item A \textbf{merged} model needs exactly the memory of the dense model: 0.80~GiB (ViT-B) and 1.80~GiB (Swin-B)
+        at batch size 64.
+  \item \textbf{Unmerged attention adapters} add 1--3~MiB, the size of the adapters themselves.
+  \item \textbf{Unmerged MLP adapters} add 0.15~GiB on ViT-B and 0.39~GiB on Swin-B at batch size 64, and about
+        5--10~MiB at batch size 1. A likely reason, which we did not isolate, is that the adapter's output must exist
+        next to that of the frozen layer before the two are added, and for the first MLP layer this output is four
+        times wider than the block.
+\end{itemize}
+Inference memory is also far smaller than training memory (0.8 against 5.5--8.2~GiB on ViT-B at batch size 64),
+because nothing is kept for a backward pass. LoRA therefore does \emph{not} lower the memory needed for
+predictions. Its memory saving is a saving in training.
+
+\section{Latency}
+\label{sec:latency}
+
+Every configuration was timed on the CIFAR-100 test images in four ways: one image at a time end to end, which is
+the situation of a device that classifies images as they arrive; in batches of 1 to 128 images (throughput); with
+the forward pass replayed as a \emph{CUDA graph}, a diagnostic explained below; and on the CPU.
+Figure~\ref{fig:latency} shows the end-to-end time per image; Table~\ref{tab:latency} in the appendix gives all values.
+
+
+\begin{figure}[!htb]
+\centering
+\input{figures/latency}
+\caption{Median time to classify one test image end to end on the GPU (9,950 images, mean of three processes).
+``odd'' = attention LoRA on the odd blocks.}
+\label{fig:latency}
+\end{figure}
+
+\paragraph{A merged model is as fast as a dense one.} End to end, merged models take 7.13--7.15~ms per image
+against 7.12~ms for the dense ViT-B, and 9.75--9.92~ms against 9.74~ms for the dense Swin-B; the throughput at
+batch size 64 is the same (305--306 and 262--263 images per second). On Swin-B the forward pass of the merged
+models was 0.3--2\% slower than that of the dense model. This comes from the order of measurement: in two of the
+three processes the merged model was timed after the unmerged one, and in the process that timed it first it is as
+fast as the dense model. With the CUDA graph the two are equal (7.50--7.51~ms). Merging has no measurable cost at
+prediction time.
+
+\paragraph{Unmerged adapters slow down single-image predictions.} With the adapters kept separate, one image takes
+7.7--9.2~ms on ViT-B ($+$8 to $+$30\% against dense) and 11.1--15.1~ms on Swin-B ($+$14 to $+$55\%). The slowest 1\%
+of images follow the same pattern. The penalty grows with the number of adapter layers: it is largest for Attn+MLP
+and smallest for the half-block placements.
+
+\paragraph{Much of the penalty is launch overhead.} The extra arithmetic of the adapters is only a few percent of
+the model's, so the size of the penalty needs an explanation. Normally the CPU tells the GPU to run each operation
+of the forward pass separately, a few hundred per pass, and each such \emph{launch} has a fixed cost of a few
+microseconds, however small the operation. A CUDA graph records the whole sequence once and afterwards replays it
+with a single launch; the GPU performs the same computations, but the cost per launch disappears. Timing the
+forward pass with and without the graph therefore shows how much of it is launch overhead. On Swin-B the graph
+removes 48--62\% of the extra time of the unmerged adapters; on ViT-B it removes 20--27\%. The rest is the GPU time
+of the adapters' many small operations, which we did not break down further. The graph is used here only as a
+diagnostic; all other latencies are measured in the normal way.
+
+\paragraph{The penalty shrinks with batching.} The launch cost is the same whatever the batch size, so with several
+images per batch it is shared among them. In batches of 8 or more, unmerged adapters cost 2--13\% of the throughput
+on ViT-B and 2--17\% on Swin-B, against 8--25\% and 13--37\% at batch size 1 (Table~\ref{tab:throughput} in the
+appendix). Merged models have the throughput of the dense model at every batch size.
+
+\paragraph{On the CPU.} On the CPU, where time is mostly computation, unmerged adapters add 1--15\% (ViT-B) and
+4--24\% (Swin-B) to the forward pass of one image. These values come from one process and 190 images and are rougher (the merged ViT-B models alone spread over
+2\%); the CPU is the closest stand-in for an edge device that was available to us, but it is not one.
+
+\section{What this means for deployment}
+
+For a \textbf{single task}, the adapters should be merged before deployment. The merged model gives the same
+predictions and has the size, the memory and the speed of a fully fine-tuned model. LoRA then changes nothing at
+prediction time; its benefits are those of Chapter~\ref{ch:lora_ft}, during training.
+
+Keeping the adapters \textbf{separate} is useful when several tasks share one base model on the device. Each task
+then costs 2--6~MiB of storage (adapters on all blocks), and switching to it means loading and applying an adapter, which takes 2.6--7.9~ms on
+ViT-B and 5.4--16.3~ms on Swin-B against 91--133~ms to load a complete model (files already in memory, so these are
+lower bounds; Table~\ref{tab:merge}). The price is slower predictions, most of all for single images on the GPU,
+and for MLP adapters some additional memory.
+
+All latencies were measured on one partition of a shared server GPU, and on a server CPU. They show how the
+configurations compare with each other. They are not predictions of the latency on an edge device.

@@ -1,0 +1,118 @@
+\chapter{Where to Place the Adapters}
+\label{ch:placement}
+
+Chapter~\ref{ch:lora_ft} placed adapters on every block. This chapter asks what happens when only half of the blocks
+receive attention adapters (rank 8, learning rate $10^{-4}$): the first half, the second half, the even blocks or the
+odd blocks. The four placements separate \emph{where} the adapters start (the first half and the even blocks start
+at block 0, the odd blocks at block 1, the second half in the middle of the model) from \emph{how they are spread}.
+Table~\ref{tab:place} gives accuracy and cost.
+
+\begin{table}[!htb]
+\centering\footnotesize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{lcccccc}
+\toprule
+ & first & test acc. & vs all blocks & vs full FT & peak & epoch \\
+adapted blocks & block & (\%) & (pp, paired) & (pp, paired) & (GiB) & (s) \\
+\midrule
+\rawinput{data/tab_place.tex}
+\bottomrule
+\end{tabular}
+\caption{Attention LoRA (rank 8, learning rate $10^{-4}$) on different sets of blocks; mean $\pm$ standard deviation
+over 5 seeds. First block = first adapted block. vs all blocks, vs full FT = paired difference to the run with the
+same seed. Peak = peak training memory at batch size 64 (identical in all seeds); epoch = train epoch time. Per seed: Appendix~\ref{app:seeds}; forward and backward times:
+Table~\ref{tab:time}.}
+\label{tab:place}
+\end{table}
+
+\section{Accuracy}
+
+\paragraph{Adapting only the second half costs accuracy on both models.} The second half is 1.56 $\pm$ 0.15~pp
+below all blocks on ViT-B and 1.18 $\pm$ 0.19~pp below on Swin-B, in every seed. On both models it also falls below
+full fine-tuning (by 1.77 and 0.70~pp, in every seed), and its validation loss is the highest of all placements. In
+this setting adapters on the later half alone are not enough. This is the opposite of the usual practice when only
+part of a pretrained model is trained, which is to train the last layers (in the extreme case only the classifier),
+on the view that early layers compute general features and later layers features specific to the task; Lee et
+al.~\cite{lee2023surgical} describe this as the common approach. A possible explanation, which we have not tested, is that CIFAR-100 images
+upsampled from $32\times32$ differ from ImageNet images mainly in their fine structure, which the early blocks
+process; this would agree with their observation that the early layers are the ones to train when it is the
+input that changes. The two ``second halves'' are not the same thing structurally (blocks 12--23 of
+Swin-B are the last ten blocks of its third stage and its fourth stage), and the size of the loss depends on the
+model (Chapter~\ref{ch:budget}).
+
+\paragraph{The best of the other placements differs between the models.} On ViT-B the first half is the most
+accurate placement, 0.21 $\pm$ 0.06~pp above all blocks in every seed. On Swin-B it is 0.38 $\pm$ 0.20~pp
+\emph{below} all blocks in every seed. Both differences are detectable. We have not tested the cause; the first
+half of Swin-B has the fewest adapter parameters of the four placements and no adapters in the fourth stage.
+
+\paragraph{Interleaved placements lose little or nothing against all blocks.} Neither the even nor the odd blocks
+differ detectably from all blocks on either model. Even blocks: $-$0.06 $\pm$ 0.09~pp on ViT-B and $-$0.03 $\pm$
+0.42~pp on Swin-B. Odd blocks: $-$0.22 $\pm$ 0.23~pp on ViT-B (lower in 4 of 5 seeds) and $+$0.08 $\pm$ 0.27~pp on
+Swin-B. No detectable difference is not the same as no difference: for the odd blocks on ViT-B the mean is negative
+and the validation loss is slightly worse in all five seeds, so a small loss cannot be excluded there. Against full
+fine-tuning, the interleaved placements stay 0.45--0.56~pp ahead on Swin-B and are 0.26--0.42~pp behind on ViT-B.
+
+All placements were trained at the same learning rate and rank; a placement with fewer or later adapters may prefer
+a different rate, so these differences hold for this setting.
+
+\section{Training memory and time}
+
+\begin{figure}[!htb]
+\centering
+\input{figures/mem_start}
+\caption{Peak training memory at batch size 64 against the first adapted block $k$, for attention LoRA on every
+block from $k$ to the last. Left: DeiT-B, which has the shape of ViT-B (profiler), and three ViT-B training runs.
+Right: Swin-B; the dotted lines mark the first block of stages 2, 3 and 4.}
+\label{fig:mem_start}
+\end{figure}
+
+\paragraph{Memory is set by the first adapted block.} On ViT-B, the first half and the even blocks have their
+adapters in different places, but both start at block 0, and their peak memory is identical (5.233~GiB). The odd
+blocks start at block 1 and need 0.362~GiB less (4.871~GiB). The second half starts at block 6 and needs exactly six
+times that amount less (3.061~GiB). This is the behaviour described in Section~\ref{sec:bg_memory}: the backward pass
+must reach the first adapter, every block from there on keeps its intermediate results, and the blocks before it
+keep nothing. Figure~\ref{fig:mem_start} shows the same rule when the first adapted block is moved one block at a
+time: the peak falls by the same amount at every step on ViT-B and DeiT-B, and fastest in the first blocks of
+Swin-B, which work on its largest tensors (Table~\ref{tab:swin_stages}). On Swin-B, the even and the odd blocks
+adapt one block of every pair in every stage, so for memory they differ only in where they start (they also differ
+in the type of attention window, regular or shifted, which does not affect memory): starting at block 1 instead of
+block 0 saves 0.98~GiB.
+
+The odd blocks and the second half of ViT-B have the same number of trainable parameters (298,084) and differ by
+1.81~GiB, so the parameter count does not predict training memory.
+
+\paragraph{Additional adapted blocks are cheap.} Once the first adapted block is fixed, adapting more blocks after
+it adds little, because those blocks store their intermediate results anyway. On ViT-B, adapting all twelve blocks
+needs 0.226~GiB more than adapting the first six: about 0.04~GiB per additional block, a tenth of the 0.36~GiB that
+starting one block earlier costs (0.40~GiB when the earlier block also receives an adapter, as in
+Figure~\ref{fig:mem_start}).
+
+\paragraph{The backward pass follows the same rule.} It takes about half as long when it stops in the middle of the
+model (116 against 237~ms per batch on ViT-B, 117 against 271~ms on Swin-B), while the forward pass, which always
+runs through the whole model, hardly changes. The shorter training epochs of the later-starting placements
+(Table~\ref{tab:place}) therefore come from the backward pass.
+
+\section{The trade-off}
+
+\begin{figure}[!htb]
+\centering
+\input{figures/placement}
+\caption{Test accuracy against peak training memory at batch size 64 for attention LoRA on all blocks and on the
+four placements, and for full fine-tuning.}
+\label{fig:placement}
+\end{figure}
+
+Figure~\ref{fig:placement} puts accuracy and memory together.
+\begin{itemize}
+  \item \textbf{Second half.} It saves the most memory: 44\% against all blocks on ViT-B and 61\% on Swin-B. But it
+        costs 1.2--1.6~pp and ends below full fine-tuning on both models.
+  \item \textbf{Odd blocks.} Leaving out block 0 saves 11\% of the memory of all-blocks LoRA on ViT-B and 14\% on
+        Swin-B (40\% and 42\% against full fine-tuning) and shortens the training epoch by 8\%, with no detectable
+        loss of accuracy against all blocks on Swin-B; on ViT-B a small loss cannot be excluded. Most of the saving
+        (60\% and 70\% of it) comes from not reaching block 0, the rest from adapting half as many blocks.
+  \item \textbf{Placements that start at block 0} need almost as much memory as all blocks. Which of them is the
+        most accurate differs between the models: the first half on ViT-B, the interleaved blocks on Swin-B.
+\end{itemize}
+Within LoRA, the choice of blocks thus trades training memory against accuracy, and the memory side follows the
+same rule on both models. How accuracy changes between a start at block 1 and a start in the middle of the model is
+taken up in Chapter~\ref{ch:budget}.

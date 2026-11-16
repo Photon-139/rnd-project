@@ -1,0 +1,12 @@
+\begin{tikzpicture}[>={Stealth[length=2mm]},
+  blk/.style={draw=cGrey, minimum width=0.82cm, minimum height=0.75cm, font=\scriptsize, inner sep=1pt},
+  fwd/.style={blk, fill=cGrey!15, text=cGrey},
+  ad/.style={blk, draw=cAttn, line width=1pt, fill=cAttn!20}]
+  \node[fwd] (b0) at (0,0) {0};
+  \foreach \i/\j in {1/0,2/1} {\node[fwd, right=0.1cm of b\j] (b\i) {\i};}
+  \foreach \i/\j in {3/2,4/3,5/4,6/5,7/6,8/7,9/8,10/9,11/10} {\node[ad, right=0.1cm of b\j] (b\i) {\i};}
+  \node[draw=cGrey, rounded corners=2pt, font=\scriptsize, right=0.25cm of b11, minimum height=0.75cm] (loss) {loss};
+  \draw[->, cGrey, line width=0.8pt] ($(b0.north west)+(0,0.3)$) -- node[above, font=\scriptsize, text=black] {forward pass through all blocks} ($(loss.north east)+(0,0.3)$);
+  \draw[->, cAccent, line width=1pt] ($(loss.south east)+(0,-0.3)$) -- node[below, font=\scriptsize, text=black] {backward pass: stops at the first adapted block} ($(b3.south west)+(0,-0.3)$);
+  \node[font=\scriptsize, text=cGrey, align=center, below=0.35cm of b1] {nothing\\stored};
+\end{tikzpicture}

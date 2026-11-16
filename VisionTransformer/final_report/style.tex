@@ -1,0 +1,22 @@
+% One colour scheme and one set of plot styles for the report and the slides.
+% Colours: Okabe-Ito (colour-blind safe). Every series also has its own mark, line style or position label, so the
+% figures stay readable when printed in greyscale.
+\definecolor{cFT}{HTML}{000000}      % full fine-tuning: black
+\definecolor{cAttn}{HTML}{0072B2}    % attention LoRA: blue
+\definecolor{cMLP}{HTML}{E69F00}     % MLP LoRA: orange
+\definecolor{cBoth}{HTML}{009E73}    % attention + MLP LoRA: green
+\definecolor{cAccent}{HTML}{D55E00}  % highlights: vermilion
+\definecolor{cGrey}{HTML}{7F7F7F}
+\usepgfplotslibrary{groupplots}
+\usetikzlibrary{arrows.meta,positioning,calc}
+\pgfplotsset{repaxis/.style={
+  tick label style={font=\footnotesize}, label style={font=\small}, title style={font=\small\bfseries, yshift=-3pt},
+  x tick label style={font=\footnotesize}, grid style={cGrey!30}, axis line style={cGrey}, tick style={cGrey},
+  every axis plot/.append style={line join=round}}}
+\providecommand{\figW}{0.49\textwidth}   % width of one panel of a two-panel figure
+\providecommand{\figH}{0.32\textwidth}   % height of a panel
+\providecommand{\figLegendFont}{\footnotesize}
+\providecommand{\figSep}{1.4cm}         % horizontal space between the panels
+\providecommand{\figWone}{0.52\textwidth}% width of a single-panel figure
+\newcommand{\pending}{\textcolor{cAccent}{\textbf{[pending]}}}
+\makeatletter\newcommand{\rawinput}[1]{\@@input #1 }\makeatother  % expandable \input, needed inside tabular

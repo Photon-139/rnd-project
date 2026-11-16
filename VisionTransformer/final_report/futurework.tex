@@ -1,0 +1,79 @@
+\chapter{Conclusion and Future Work}
+\label{ch:conclusion}
+
+\section{Conclusions}
+
+We compared LoRA with full fine-tuning for ViT-B and Swin-B on CIFAR-100, in the same configurations on both models
+and with five seeds.
+
+\begin{enumerate}
+  \item \textbf{Accuracy.} With the learning rate of each method chosen on validation loss, LoRA at rank 8 is more
+        accurate than full fine-tuning on Swin-B (0.4--0.5~pp for each of the three targets). On ViT-B it is never
+        ahead: MLP and Attn+MLP show no detectable difference, and attention LoRA is about 0.2~pp below. The comparison is sensitive to the tuning of full fine-tuning: a
+        rate three times too small costs it 0.6~pp on ViT-B, enough to make LoRA look clearly better. Rank 16 gives
+        no gain on ViT-B, and no target is reliably the most accurate.
+  \item \textbf{Training cost.} The saving in training memory is decided by which layers are adapted, not by how
+        many parameters are trained: about a third for the attention projections, a seventh for the MLP and 6\% for
+        both at batch size 64, on both models, and about 70\% for any of them at batch size 1. Training epochs are
+        12--26\% shorter, because the backward pass and the optimiser step become cheaper.
+  \item \textbf{Placement.} Training memory is set mainly by the first adapted block; additional adapters after it
+        are cheap. Adapting only the second half of the blocks saves the most memory but loses 1.2--1.6~pp and falls
+        below full fine-tuning on both models. Adapting only the odd blocks, which skips the first block, saves 11--14\% of the memory with
+        no detectable loss against all blocks on Swin-B; on ViT-B a small loss cannot be excluded.
+  \item \textbf{Deployment.} For a single task, a merged LoRA model is indistinguishable from a fully fine-tuned
+        one in predictions, memory and speed, so LoRA does not make inference cheaper. Unmerged adapters let
+        several tasks share one base model at 2--6~MiB per task (adapters on all blocks), at the price of slower predictions (8--55\% for
+        single images on the GPU, 2--17\% in batches of 8 or more).
+  \item \textbf{Memory budgets.} Peak training memory can be predicted from the shape of the model (ViT-L within
+        1.5\% before it was measured). The accuracy of a placement cannot yet: our rule, written down in advance,
+        failed.
+\end{enumerate}
+For someone who wants to fine-tune a vision transformer with little memory, the practical summary is: put LoRA on
+the attention projections, with rank 8; if memory is still short, reduce the batch size or start the adapters one or a few blocks later, not half-way through the
+model; and merge the adapters before deployment unless several tasks
+share the model.
+
+\section{Limitations}
+\label{sec:limitations}
+
+\begin{itemize}
+  \item \textbf{One dataset.} All results are on CIFAR-100, with images upsampled from $32\times32$. Accuracy is
+        close to saturated, so differences of a few tenths of a point may not carry over to harder tasks, and the
+        finding that the early blocks matter most may be specific to such images.
+  \item \textbf{One task.} LoRA is usually motivated by several tasks sharing one base model. We trained one
+        task, because the questions here concern the cost of adapting and deploying a single adapter. What we say
+        about several tasks (stored size per task, the slower predictions of unmerged adapters) depends only on the
+        shapes of the adapters and not on what they were trained for; the accuracy on other tasks is not measured.
+  \item \textbf{Learning rates.} The rates were varied with three seeds and for one LoRA target. The other targets
+        and all placements were trained at one rate and one rank.
+  \item \textbf{Seeds and run-to-run variation.} With five seeds, differences of about 0.2~pp can be neither shown
+        nor ruled out, and two sets of ViT-B runs with the same seeds differed by 0.1--0.2~pp in their means. The
+        learning-rate check and the DeiT-B runs have three seeds. Merging, memory profiling and latency use one
+        trained adapter per configuration.
+  \item \textbf{Hardware and precision.} Everything was measured on one partition of a shared server GPU, in 32-bit
+        floating point. No edge device was used; the GPU and CPU latencies show how the configurations compare, not
+        what an edge device would achieve. Memory values are PyTorch's counts of memory occupied by tensors.
+  \item \textbf{Power and energy were not measured.} The GPU reports power only for the whole card, which includes
+        the jobs of other users on its other partitions, and the cluster does not record energy per job. In a test,
+        the card drew between 280 and 503~W while our partition was idle, and a steady load on our partition raised
+        the average by 6--78~W, less than this background and not repeatably.
+  \item \textbf{Causes were not tested}: why LoRA loses nothing against full fine-tuning, why the best placement
+        differs between the models, and why DeiT-B loses less from a late start.
+\end{itemize}
+
+\section{Future work}
+
+\begin{itemize}
+  \item \textbf{Harder and more varied tasks}, to see which accuracy results hold beyond CIFAR-100, in particular
+        the importance of the early blocks.
+  \item \textbf{An edge device}, including power and energy, and reduced precision, which is what such devices use.
+  \item \textbf{A complete memory model and its alternatives.} The formula needs a lower bound for the temporary
+        memory of the forward pass. Placement should also be compared with gradient accumulation: because memory is
+        linear in the batch size, a batch can be processed in pieces with the gradients added up, which meets any
+        budget with adapters on all blocks and, for ViT-B and DeiT-B, should give the same update (they normalise
+        each token separately and use no dropout). We did not run this. If it holds, a later start mainly buys
+        time (training epochs 14\% shorter from block 3, 28\% from block 6), so the step time of accumulation and of
+        gradient checkpointing must be measured.
+  \item \textbf{Predicting the accuracy of a placement}: the start-block curve at more points and on Swin-B, and a
+        per-model score computed before training, such as a gradient-based sensitivity score.
+\end{itemize}

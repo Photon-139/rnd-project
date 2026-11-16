@@ -1,0 +1,82 @@
+\documentclass[a4paper]{CSEThesis}
+% Based on Report_Template/thesis.tex. Changes: packages that only work with pdfLaTeX (inputenc,
+% \DeclareUnicodeCharacter, epsfig, subfigure) are removed so that the report builds with tectonic (XeTeX);
+% \include is replaced by \clearpage\input (tectonic runs BibTeX on every \include file and warns);
+% pgfplots, booktabs and multirow are added for the figures and tables.
+% Build:  tectonic thesis.tex      (figures and generated tables: see scripts/)
+% A4 paper: the class computes its layout from \paperwidth, which stays US letter under XeTeX unless set here.
+\setlength{\paperwidth}{210mm}\setlength{\paperheight}{297mm}
+\pdfpagewidth=\paperwidth \pdfpageheight=\paperheight
+\setlength{\textwidth}{\dimexpr\paperwidth-1.3in-0.8in\relax}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{setspace}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{array}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\input{style}               % colours and plot styles shared with the slides
+\input{data/gap_macros}     % numbers that depend on the last runs (generated)
+\graphicspath{{./images/}}
+\emergencystretch=2em
+
+% ===== FILL IN (placeholders) =====
+\btptitle = {LoRA versus Full Fine-Tuning of Vision Transformers: Accuracy, Training Cost and Deployment}
+\name     = {Anshuman Rahul}
+\rollno   = {CS24BT060}
+% \email    = {@iitdh.ac.in}
+\guide    = {Prof. Gayathri Ananthanarayanan}
+\newcommand{\cosupervisor}{Prof. Achyut Mani Tripathi}
+\newcommand{\reportdate}{November 2026}
+% ==================================
+
+\begin{document}
+
+\clearpage\input{title}
+\cleardoublepage
+\clearpage\input{certificate}
+\cleardoublepage
+\clearpage\input{acknowledgement}
+\cleardoublepage
+\clearpage\input{abstract}
+\cleardoublepage
+\singlespacing
+\tableofcontents
+\cleardoublepage
+\addcontentsline{toc}{chapter}{List of Figures}
+\listoffigures
+\cleardoublepage
+\addcontentsline{toc}{chapter}{List of Tables}
+\listoftables
+\cleardoublepage
+\pagenumbering{arabic}
+\onehalfspacing
+\def\headrulehook{\color{black}}
+
+\clearpage\input{chapter1}
+\cleardoublepage
+\clearpage\input{chapter2}
+\cleardoublepage
+\clearpage\input{chapter3}
+\cleardoublepage
+\clearpage\input{chapter4}
+\cleardoublepage
+\clearpage\input{chapter5}
+\cleardoublepage
+\clearpage\input{chapter6}
+\cleardoublepage
+\clearpage\input{chapter7}
+\cleardoublepage
+\clearpage\input{futurework}
+\cleardoublepage
+
+\bibliographystyle{alpha}
+\bibliography{btp}
+
+\appendix
+\clearpage\input{appendix}
+\end{document}

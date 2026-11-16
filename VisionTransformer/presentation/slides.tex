@@ -1,0 +1,647 @@
+\documentclass[aspectratio=169,11pt]{beamer}
+% Build:  tectonic slides.tex     (figures and colours are shared with ../final_report)
+\usepackage{booktabs}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\newcommand{\figW}{6.8cm}      % one panel of a two-panel figure
+\newcommand{\figH}{5.0cm}
+\newcommand{\figLegendFont}{\tiny}
+\newcommand{\figSep}{1.3cm}
+\newcommand{\figWone}{6.4cm}
+\input{../final_report/style}
+\input{../final_report/data/gap_macros}
+\graphicspath{{../final_report/images/}}
+
+% ---- a plain theme --------------------------------------------------------------------------------------------
+\definecolor{cInk}{HTML}{1B2A41}
+\usefonttheme{professionalfonts}
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{normal text}{fg=cInk}
+\setbeamercolor{frametitle}{fg=cInk}
+\setbeamercolor{structure}{fg=cAttn}
+\setbeamercolor{alerted text}{fg=cAccent}
+\setbeamerfont{frametitle}{series=\bfseries,size=\large}
+\setbeamertemplate{itemize items}{\textbullet}
+\setbeamersize{text margin left=7mm,text margin right=7mm}
+\setbeamertemplate{frametitle}{\vspace{2.5mm}\insertframetitle\par\vspace{0.8mm}{\color{cAttn}\hrule height 1.2pt}}
+\setbeamertemplate{footline}{\hbox to \paperwidth{\hspace{7mm}\tiny\color{cGrey}
+  LoRA versus full fine-tuning of vision transformers\hfill\insertframenumber\hspace{7mm}}\vspace{2mm}}
+\newcommand{\src}[1]{\par\vfill{\tiny\color{cGrey}#1\par}}
+\newcommand{\take}[1]{\par\smallskip{\color{cAttn}\bfseries #1}\par}
+\setlength{\leftmargini}{1.2em}
+
+\title{LoRA versus Full Fine-Tuning of Vision Transformers:\\ Accuracy, Training Cost and Deployment}
+\author{STUDENT NAME (ROLL NUMBER)}
+\institute{Supervisor: SUPERVISOR NAME \quad Co-supervisor: CO-SUPERVISOR NAME\\[1mm]
+Department of Computer Science and Engineering, IIT Dharwad}
+\date{R\&D project presentation, 20 November 2026}
+
+\begin{document}
+
+% 1 ---------------------------------------------------------------------------------------------------------------
+{\setbeamertemplate{footline}{}
+\begin{frame}[plain]
+\vspace{6mm}
+\begin{minipage}[c]{0.74\textwidth}
+{\LARGE\bfseries\color{cInk} LoRA versus Full Fine-Tuning\\ of Vision Transformers\par}
+\vspace{2mm}{\large\color{cAttn} Accuracy, training cost and deployment\par}
+\vspace{9mm}
+{\normalsize STUDENT NAME \quad (ROLL NUMBER)\par}
+\vspace{2mm}
+{\small Supervisor: SUPERVISOR NAME\\ Co-supervisor: CO-SUPERVISOR NAME\par}
+\vspace{6mm}
+{\small\color{cGrey} Department of Computer Science and Engineering, IIT Dharwad\\
+R\&D project presentation, 20 November 2026\par}
+\end{minipage}\hfill
+\begin{minipage}[c]{0.22\textwidth}\centering
+\includegraphics[width=\textwidth]{iitdh_logo}
+\end{minipage}
+\end{frame}}
+
+% 2 ---------------------------------------------------------------------------------------------------------------
+\begin{frame}{What does LoRA cost, and what does it save?}
+\begin{columns}[T]
+\begin{column}{0.47\textwidth}
+\small
+\textbf{Full fine-tuning} trains all 86 million weights.
+\begin{itemize}
+  \item several GiB of GPU memory to train
+  \item 330 MiB stored per task
+\end{itemize}
+\medskip
+\textbf{LoRA} freezes the weights and trains a small low-rank path next to chosen layers.
+\begin{itemize}
+  \item under 2\% of the weights are trained
+  \item the path can be \emph{merged} into $W$ afterwards
+\end{itemize}
+\end{column}
+\begin{column}{0.5\textwidth}
+\centering
+\scalebox{0.8}{\input{../final_report/figures_static/lora}}
+\par\medskip\small
+\begin{enumerate}
+  \item Is it as \textbf{accurate}?
+  \item What does it save in \textbf{training}?
+  \item \textbf{Where} should the adapters go?
+  \item What changes at \textbf{deployment}?
+\end{enumerate}
+\end{column}
+\end{columns}
+\end{frame}
+
+% 3 ---------------------------------------------------------------------------------------------------------------
+\begin{frame}{Setup: two models, the same configurations, five seeds}
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+models & ViT-B/16 (12 equal blocks)\\
+ & Swin-B (24 blocks, 4 stages)\\
+data & CIFAR-100, upsampled to 224\\
+ & 45k train / 5k validation / 10k test\\
+full FT & all weights; rate chosen on\\
+ & validation loss ($3{\times}10^{-5}$, $10^{-5}$)\\
+LoRA & rank 8, rate $10^{-4}$\\
+ & on attention, MLP, or both\\
+training & batch 64, early stopping\\
+seeds & 5 per configuration\\
+\bottomrule
+\end{tabular}
+\end{column}
+\begin{column}{0.47\textwidth}
+\small
+\textbf{How we compare}
+\begin{itemize}
+  \item mean $\pm$ standard deviation over seeds
+  \item \textbf{paired difference}: seed by seed, then averaged
+  \item \textbf{detectable}: mean larger than its standard deviation, and the same sign in at least 4 of 5 seeds
+  \item times are compared \textbf{per epoch}
+\end{itemize}
+\medskip
+Every comparison uses the same configurations and seeds on both models.
+\end{column}
+\end{columns}
+\end{frame}
+
+% 4 ---------------------------------------------------------------------------------------------------------------
+\begin{frame}{Full fine-tuning must be tuned before it is compared}
+\vspace{-1mm}
+{\renewcommand{\figH}{4.3cm}\centering\input{../final_report/figures/lr_check_val}\par}
+\vspace{-1mm}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item four rates per method, 3 seeds; the best rate is the one with the lowest validation loss
+  \item full fine-tuning: \textbf{$3{\times}10^{-5}$ on ViT-B}, \textbf{$10^{-5}$ on Swin-B}; worse on both sides
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item LoRA: $10^{-4}$ is at, or tied with, its best rate on both models
+  \item at a rate three times too small, ViT-B full fine-tuning loses \textbf{0.6 pp} (5 seeds, every seed)
+\end{itemize}
+\end{column}
+\end{columns}
+\src{Validation loss of the tested weights (lower is better); error bars: standard deviation over 3 seeds. All numbers: backup slide.}
+\end{frame}
+
+% 5 ---------------------------------------------------------------------------------------------------------------
+\begin{frame}{LoRA is ahead on Swin-B; on ViT-B it is level or slightly behind}
+\vspace{-1mm}
+{\renewcommand{\figH}{4.5cm}\centering\input{../final_report/figures/acc_seeds}\par}
+\vspace{1mm}
+\vspace{-1mm}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item \textbf{ViT-B}: MLP $+$0.04, Attn+MLP $+$0.12 pp (not detectable); attention \textbf{$-$0.21 $\pm$ 0.13 pp}, lower in 5 of 5 seeds
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item \textbf{Swin-B}: $+$0.43 to $+$0.48 pp, ahead in \textbf{5, 5 and 4 of 5} seeds; all three detectable
+\end{itemize}
+\end{column}
+\end{columns}
+\src{LoRA rank 8 on all blocks, rate $10^{-4}$; full fine-tuning at its best rate; 5 seeds.}
+\end{frame}
+
+% 6 ---------------------------------------------------------------------------------------------------------------
+\begin{frame}{ViT-B: within about 0.2 pp, with no evidence that LoRA is better}
+\small
+\begin{columns}[T]
+\begin{column}{0.56\textwidth}
+\textbf{Attention LoRA $-$ full fine-tuning on ViT-B} (pp, paired)\par\smallskip
+\begin{tabular}{@{}lc@{}}
+\toprule
+at $10^{-4}$, 5 seeds & $-$0.21 $\pm$ 0.13 \\
+at $3{\times}10^{-4}$ (same val.\ loss), 3 seeds & $+$0.08 $\pm$ 0.27 \\
+at $10^{-4}$, repeated set of runs, 3 seeds & $-$0.04 $\pm$ 0.29 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+\begin{itemize}
+  \item the repeated set is 0.19 pp above the main runs on the same seeds: run-to-run variation is as large as the difference
+\end{itemize}
+\end{column}
+\begin{column}{0.41\textwidth}
+\textbf{Validation loss}, LoRA $-$ full FT\par\smallskip
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & ViT-B & Swin-B \\
+\midrule
+Attn & $-$0.031 & $-$0.018 \\
+MLP & $-$0.026 & $-$0.018 \\
+Attn+MLP & $-$0.028 & $-$0.019 \\
+\bottomrule
+\end{tabular}
+\par\smallskip
+{\footnotesize Lower in all 30 seed pairs. On ViT-B this does not turn into higher test accuracy.}
+\end{column}
+\end{columns}
+\take{Against an untuned full fine-tuning ($10^{-5}$), LoRA would have looked 0.4--0.7 pp better on ViT-B.}
+\end{frame}
+
+% 7 ---------------------------------------------------------------------------------------------------------------
+\begin{frame}{Training memory: the saving depends on which layers are adapted}
+\vspace{-1mm}
+{\centering\input{../final_report/figures/mem_targets}\par}
+\vspace{-1mm}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item attention: \textbf{a third} less
+  \item MLP: a seventh less; both: about 6\% less
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\footnotesize
+\take{The same pattern on both models.}
+Peak memory at batch size 64; identical in all 5 seeds.
+\end{column}
+\end{columns}
+\end{frame}
+
+% 8 ---------------------------------------------------------------------------------------------------------------
+\begin{frame}{Why: memory is what the backward pass must keep}
+\centering
+\scalebox{0.95}{\input{../final_report/figures_static/reach}}
+\par\medskip
+\begin{columns}[T]
+\begin{column}{0.47\textwidth}
+\small
+\begin{itemize}
+  \item Only 1.3 of the 8.2 GiB of full fine-tuning is weights and optimiser state (ViT-B); the rest is kept activations
+  \item A \textbf{frozen layer} keeps nothing
+  \item An \textbf{adapter} needs the input of its layer
+\end{itemize}
+\end{column}
+\begin{column}{0.5\textwidth}
+\small
+\begin{itemize}
+  \item The MLP's hidden layer is $4\times$ wider, so MLP adapters keep much more
+  \item Blocks \textbf{before the first adapter} keep nothing at all
+\end{itemize}
+\take{Trained parameters do not predict training memory.}
+\end{column}
+\end{columns}
+\end{frame}
+
+% 9 ---------------------------------------------------------------------------------------------------------------
+\begin{frame}{The saving is largest at small batches}
+\vspace{-1mm}
+{\centering\input{../final_report/figures/saving_batch}\par}
+\vspace{-1mm}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item batch 1: \textbf{66--74\%} less memory for every target
+  \item batch 128: 31\% (attention), 11--13\% (MLP), 3--4\% (both)
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\footnotesize
+\take{Small batches are where memory-limited devices work.}
+\end{column}
+\end{columns}
+\src{Peak memory of one training step (profiler). Full fine-tuning of Swin-B does not fit at batch 256.}
+\end{frame}
+
+% 10 --------------------------------------------------------------------------------------------------------------
+\begin{frame}{Training is faster per epoch, and a task is stored in megabytes}
+\vspace{-1mm}
+{\centering\input{../final_report/figures/time_batch}\par}
+\vspace{-1mm}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item train epoch: \textbf{19--26\%} shorter (ViT-B), \textbf{12--22\%} (Swin-B)
+  \item backward pass and optimiser get cheaper; the forward pass gets slightly slower
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item stored per task: \textbf{2--6 MiB} instead of 330 MiB
+  \item this helps only when tasks share one base model
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+% 11 --------------------------------------------------------------------------------------------------------------
+\begin{frame}{Placement: adapting only the second half costs accuracy}
+\vspace{-1mm}
+{\renewcommand{\figH}{4.5cm}\centering\input{../final_report/figures/placement}\par}
+\vspace{1mm}
+\vspace{-1mm}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item \textbf{second half}: $-$1.56 pp (ViT-B), $-$1.18 pp (Swin-B); below full fine-tuning on both
+  \item \textbf{first half}: best on ViT-B ($+$0.21 pp), below all blocks on Swin-B ($-$0.38 pp)
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\footnotesize
+\take{Adapters on the later half alone are not enough.}
+Attention LoRA on half of the blocks. Differences are paired against all blocks, 5 seeds, the same sign in every seed.
+\end{column}
+\end{columns}
+\end{frame}
+
+% 12 --------------------------------------------------------------------------------------------------------------
+\begin{frame}{Training memory is set by the first adapted block}
+\vspace{-1mm}
+{\centering\input{../final_report/figures/mem_start}\par}
+\vspace{-1mm}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item ViT-B: first half $=$ even blocks $=$ 5.233 GiB (both start at block 0)
+  \item each block skipped at the start saves \textbf{0.36 GiB} (0.40 with its adapter, as plotted)
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item Swin-B: block 0 alone is \textbf{0.98 GiB}
+  \item one more adapted block after the start: only 0.04 GiB
+\end{itemize}
+\end{column}
+\end{columns}
+\src{Attention LoRA on every block from $k$ to the last, batch 64. ViT-B odd blocks and second half: same trainable parameters, 1.81 GiB apart.}
+\end{frame}
+
+% 13 --------------------------------------------------------------------------------------------------------------
+\begin{frame}{A cheap saving: adapt the odd blocks, skipping block 0}
+\small
+\centering
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}lccc@{}}
+\toprule
+odd blocks vs all blocks & accuracy (pp, paired) & peak memory (GiB) & train epoch \\
+\midrule
+ViT-B & $-$0.22 $\pm$ 0.23 \ (4 of 5 seeds lower) & 4.87 vs 5.46 \ ($-$11\%) & $-$8\% \\
+Swin-B & $+$0.08 $\pm$ 0.27 \ (2 of 5 seeds lower) & 8.18 vs 9.55 \ ($-$14\%) & $-$8\% \\
+\bottomrule
+\end{tabular}
+\par\bigskip
+\begin{columns}[T]
+\raggedright
+\begin{column}{0.47\textwidth}
+\begin{itemize}
+  \item No detectable loss of accuracy on either model
+  \item \alert{Not the same as no loss}: on ViT-B the mean is negative and the validation loss is worse in 5 of 5 seeds
+\end{itemize}
+\end{column}
+\begin{column}{0.47\textwidth}
+\begin{itemize}
+  \item 60--70\% of the saving comes from not reaching block 0
+  \item The second half saves far more (44\% and 61\%) but loses 1.2--1.6 pp
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+% 14 --------------------------------------------------------------------------------------------------------------
+\begin{frame}{Deployment: a merged LoRA model is an ordinary model}
+\begin{columns}[T]
+\begin{column}{0.47\textwidth}
+\small
+\textbf{Merging changes nothing} (7 configurations per model)
+\begin{itemize}
+  \item same class on 10,000 of 10,000 test images
+  \item outputs equal up to rounding ($\le 5\times10^{-6}$)
+  \item still exact after 100 merge/unmerge cycles
+\end{itemize}
+\medskip
+\textbf{Speed}: merged $=$ dense\\
+7.13--7.15 vs 7.12 ms (ViT-B)\\ 9.75--9.92 vs 9.74 ms (Swin-B)
+\end{column}
+\begin{column}{0.5\textwidth}
+\small
+\textbf{Inference memory} at batch 64 (GiB)\par\smallskip
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & ViT-B & Swin-B \\
+\midrule
+dense & 0.799 & 1.805 \\
+merged LoRA & 0.799 & 1.805 \\
+unmerged, attention & 0.801 & 1.807 \\
+unmerged, MLP & 0.946 & 2.192 \\
+\bottomrule
+\end{tabular}
+\take{LoRA does not make inference cheaper. Its saving is in training.}
+\end{column}
+\end{columns}
+\end{frame}
+
+% 15 --------------------------------------------------------------------------------------------------------------
+\begin{frame}{Unmerged adapters slow down single-image predictions}
+\vspace{-1mm}
+{\centering\input{../final_report/figures/latency}\par}
+\vspace{-1mm}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item $+$8 to $+$30\% (ViT-B), $+$14 to $+$55\% (Swin-B)
+  \item the extra arithmetic is only a few percent
+\end{itemize}
+\end{column}
+\begin{column}{0.48\textwidth}
+\footnotesize
+\begin{itemize}
+  \item much of it is \textbf{launch overhead}: one GPU launch for the whole pass removes 48--62\% of it on Swin-B
+  \item in batches of 8 or more: 2--17\%
+\end{itemize}
+\end{column}
+\end{columns}
+\src{One test image end to end on the GPU, median over 9,950 images, 3 processes. Not an edge device.}
+\end{frame}
+
+% 16 --------------------------------------------------------------------------------------------------------------
+\begin{frame}{Closing study: memory is predictable, accuracy was not}
+\begin{columns}[T]
+\begin{column}{0.48\textwidth}
+\renewcommand{\figWone}{5.7cm}
+\centering\input{../final_report/figures/mem_pred}
+\par\footnotesize
+A formula fitted on ViT-B, written down \textbf{before measuring}: ViT-L within 1.5\%, Swin-B within 4.6\%, one miss.
+\end{column}
+\begin{column}{0.48\textwidth}
+\renewcommand{\figWone}{6.6cm}\renewcommand{\figH}{5.2cm}
+\centering\input{../final_report/figures/acc_start}
+\par\footnotesize
+Accuracy against the start block: our \textbf{straight-line rule did not hold} (both DeiT-B predictions failed). A start at block 3 costs little or nothing; further on it depends on the model.
+\end{column}
+\end{columns}
+\end{frame}
+
+% 17 --------------------------------------------------------------------------------------------------------------
+\begin{frame}{Conclusions and limitations}
+\begin{columns}[T]
+\begin{column}{0.56\textwidth}
+\small
+\begin{enumerate}
+  \item \textbf{Accuracy}: with both methods tuned, LoRA is ahead on Swin-B; on ViT-B it is level or slightly behind, never ahead.
+  \item \textbf{Training}: attention LoRA needs a third less memory at batch 64, about 70\% less at batch 1, and has about a quarter shorter epochs.
+  \item \textbf{Placement}: the first adapted block sets the memory; adapting only the later half costs 1.2--1.6 pp.
+  \item \textbf{Deployment}: merge for a single task; keep adapters separate only to share a base model.
+\end{enumerate}
+\end{column}
+\begin{column}{0.4\textwidth}
+\small
+\textbf{Limitations}
+\begin{itemize}
+  \item one dataset (CIFAR-100, close to saturated)
+  \item 32-bit floats, a shared server GPU; no edge device
+  \item power could not be measured per job
+  \item 3 seeds for the learning-rate check and DeiT-B
+  \item causes not tested
+\end{itemize}
+\end{column}
+\end{columns}
+\end{frame}
+
+% ==================================================================================================================
+\appendix
+\begin{frame}[plain]
+\centering\Large\bfseries\color{cInk} Backup slides
+\end{frame}
+
+\begin{frame}{Backup: learning-rate check, all numbers (3 seeds)}
+\centering\scriptsize
+\begin{tabular}{llccc}
+\toprule
+method & learning rate & validation loss & test acc.\ (\%) & stopping epoch \\
+\midrule
+\rawinput{../final_report/data/tab_lr.tex}
+\bottomrule
+\end{tabular}
+\src{$^*$ lowest validation loss of the method on that model. ViT-B full FT at $10^{-4}$: an earlier set of runs.}
+\end{frame}
+
+\begin{frame}{Backup: rank 16 gives no gain on ViT-B}
+\small\centering
+\begin{tabular}{lccccc}
+\toprule
+ & \multicolumn{2}{c}{test acc.\ (\%)} & rank 16 $-$ rank 8 & \multicolumn{2}{c}{peak memory (GiB)} \\
+target & rank 8 & rank 16 & (pp, paired) & rank 8 & rank 16 \\
+\midrule
+Attn & 91.21 & 91.06 & $-$0.15 $\pm$ 0.12 & 5.459 & 5.478 \\
+MLP & 91.31 & 91.30 & $-$0.02 $\pm$ 0.13 & 7.011 & 7.028 \\
+Attn+MLP & 91.44 & 91.50 & $+$0.05 $\pm$ 0.12 & 7.644 & 7.679 \\
+\bottomrule
+\end{tabular}
+\par\medskip
+\begin{itemize}
+  \item 5 seeds, library implementation. Attention: detectably lower with rank 16 in the library runs (5 of 5 seeds), but $+$0.02 $\pm$ 0.04 pp in our own implementation
+  \item memory rises by less than 0.04 GiB
+  \item ViT-B only; rank 16 was not run on Swin-B
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: which target is most accurate? Only ``at rate $10^{-4}$''}
+\small
+\begin{itemize}
+  \item \textbf{Swin-B}: no detectable difference between attention, MLP and both ($-$0.05 to $+$0.01 pp)
+  \item \textbf{ViT-B} at $10^{-4}$: MLP $+$0.25 $\pm$ 0.16 pp and Attn+MLP $+$0.33 $\pm$ 0.16 pp above attention, 5 of 5 seeds
+  \item But at rate $3\times10^{-4}$ (same validation loss) attention is level with them: $+$0.13 $\pm$ 0.24 pp against MLP, $-$0.07 $\pm$ 0.24 pp against Attn+MLP (3 seeds)
+\end{itemize}
+\take{We do not claim that the MLP is the better target. The cost difference is the robust result.}
+\end{frame}
+
+\begin{frame}{Backup: placement accuracies (5 seeds, paired against all blocks)}
+\small\centering
+\begin{tabular}{lcccc}
+\toprule
+ & \multicolumn{2}{c}{ViT-B} & \multicolumn{2}{c}{Swin-B} \\
+placement & test acc.\ (\%) & vs all (pp) & test acc.\ (\%) & vs all (pp) \\
+\midrule
+all blocks & 91.10 $\pm$ 0.08 & -- & 91.74 $\pm$ 0.31 & -- \\
+first half & 91.31 $\pm$ 0.11 & $+$0.21 $\pm$ 0.06 & 91.36 $\pm$ 0.20 & $-$0.38 $\pm$ 0.20 \\
+even & 91.05 $\pm$ 0.08 & $-$0.06 $\pm$ 0.09 & 91.72 $\pm$ 0.19 & $-$0.03 $\pm$ 0.42 \\
+odd & 90.89 $\pm$ 0.22 & $-$0.22 $\pm$ 0.23 & 91.82 $\pm$ 0.29 & $+$0.08 $\pm$ 0.27 \\
+second half & 89.54 $\pm$ 0.13 & $-$1.56 $\pm$ 0.15 & 90.57 $\pm$ 0.19 & $-$1.18 $\pm$ 0.19 \\
+full FT & 91.31 $\pm$ 0.15 & $+$0.21 $\pm$ 0.13 & 91.26 $\pm$ 0.23 & $-$0.48 $\pm$ 0.28 \\
+\bottomrule
+\end{tabular}
+\par\medskip
+Even blocks: no detectable difference from all blocks on either model (not equivalence; Swin-B has one seed at $+$0.72 pp).
+\end{frame}
+
+\begin{frame}{Backup: throughput, CPU latency and task switching}
+\small
+\begin{columns}[T]
+\begin{column}{0.5\textwidth}
+\textbf{Unmerged penalty against batch size} (throughput)\par\smallskip
+\begin{tabular}{@{}lcc@{}}
+\toprule
+ & batch 1 & batch 8 or more \\
+\midrule
+ViT-B & 8--25\% & 2--13\% \\
+Swin-B & 13--37\% & 2--17\% \\
+\bottomrule
+\end{tabular}
+\par\medskip
+\textbf{CPU} (4 threads, one image): unmerged $+$1 to $+$15\% (ViT-B), $+$4 to $+$24\% (Swin-B). One process, 190 images; the low end is within noise.
+\end{column}
+\begin{column}{0.46\textwidth}
+\textbf{Switching tasks}
+\begin{itemize}
+  \item load and apply an adapter: 2.6--7.9 ms (ViT-B), 5.4--16.3 ms (Swin-B)
+  \item load a full model: 91--100 ms, 108--133 ms
+  \item files already in memory: lower bounds
+\end{itemize}
+\medskip
+\textbf{CUDA graph} removes 48--62\% of the unmerged penalty on Swin-B and 20--27\% on ViT-B.
+\end{column}
+\end{columns}
+\end{frame}
+
+\begin{frame}{Backup: our own implementation agrees with the library}
+\small
+Every ViT-B LoRA configuration was trained twice per seed: HuggingFace + PEFT, and our own ViT and LoRA code, from identical initial weights.
+\begin{itemize}
+  \item mean accuracy differs by at most \textbf{0.08 pp}; single seeds by at most 0.26 pp
+  \item peak memory differs by at most \textbf{0.003 GiB}
+  \item same stopping epoch in 32 of 35 seed pairs; identical trainable-parameter counts
+\end{itemize}
+\medskip
+\textbf{Run-to-run variation}: the same ViT-B configuration and seeds trained again differ by 0.04--0.15 pp per seed (one run 0.36 pp), and by 0.1--0.2 pp in the mean. Differences of about 0.2 pp cannot be shown or excluded with 5 seeds.
+\end{frame}
+
+\begin{frame}{Backup: starting at block 3, and how much a late start costs}
+\small\centering
+\begin{tabular}{lccc}
+\toprule
+comparison (3 seeds) & predicted (pp) & measured (pp) & validation loss \\
+\midrule
+DeiT-B, blocks 3--11 $-$ all & $-$0.7 [$-$1.4, $-$0.2] & $+$0.15 $\pm$ 0.04 & $-$0.010 $\pm$ 0.002 \\
+DeiT-B, blocks 6--11 $-$ all & $-$1.4 [$-$2.5, $-$0.7] & $-$0.32 $\pm$ 0.35 & $+$0.016 $\pm$ 0.003 \\
+ViT-B, blocks 3--11 $-$ all & $-$0.8 [$-$1.4, $-$0.2] & $-$0.31 $\pm$ 0.27 & $+$0.016 $\pm$ 0.003 \\
+ViT-B, blocks 6--11 $-$ all & (known) & $-$1.66 $\pm$ 0.24 & $+$0.061 $\pm$ 0.004 \\
+\bottomrule
+\end{tabular}
+\par\medskip\raggedright
+\begin{itemize}
+  \item Block 3: 22\% less memory (4.26 vs 5.46 GiB), 14\% shorter epochs. No cost on DeiT-B in these runs; \alert{a small cost on ViT-B} (lower in 3 of 3 seeds, validation loss worse in 3 of 3)
+  \item Second half: $-$1.66 pp (ViT-B), $-$1.18 pp (Swin-B, 5 seeds), $-$0.32 pp (DeiT-B, not detectable): it depends on the model. ViT-B block 3 is at the upper edge of its predicted range
+  \item The cost predictions (memory, epoch time, backward time) all held
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: the memory formula and its one miss}
+\small
+\[
+\text{peak} = \text{resident} + B\cdot\Big(c_\text{reach}\!\sum_{b\ge k}\! s_b + c_\text{attn}\!\!\sum_{\text{attn}}\! s_b + c_\text{mlp}\!\!\sum_{\text{MLP}}\! s_b + h\Big),\qquad s_b = \text{tokens}\times\text{width}\times 4\ \text{bytes}
+\]
+\begin{itemize}
+  \item fitted on 7 ViT-B configurations: $c_\text{reach}=9.95$, $c_\text{attn}=1.34$, $c_\text{mlp}=4.86$
+  \item memory is linear in the batch size (within 0.005 GiB on ViT-B, 0.04 GiB on Swin-B) and identical across seeds
+  \item ViT-L: mean error 0.8\%, largest 1.5\%; three predicted out-of-memory cases all happened
+  \item DeiT-B: within 1.7\% (same shape as ViT-B, a consistency check)
+  \item \alert{Miss}: Swin-B with adapters on the last two blocks: predicted 0.90, measured 1.82 GiB. The peak there is temporary memory of the forward pass through the large early stages; the formula needs a lower bound for it
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: other ways to meet a budget; an early indicator that fails}
+\small
+\textbf{Gradient accumulation}
+\begin{itemize}
+  \item process the batch in pieces and add the gradients: memory follows the piece size
+  \item same update for ViT-B / DeiT-B (per-token normalisation, no dropout): an argument, not run
+  \item then placement mainly buys \textbf{time}: epochs 14\% (block 3) to 28\% (block 6) shorter
+  \item step time of accumulation and gradient checkpointing: not measured
+\end{itemize}
+\medskip
+\textbf{Validation loss after epoch 1 as a predictor of the final ranking}
+\begin{itemize}
+  \item agreement of the two rankings (Kendall's $\tau$; 1 = same order): 0.62 (ViT-B), 0.24 (Swin-B); 7 configurations each
+  \item early-starting placements learn slowly at first and finish high
+\end{itemize}
+\end{frame}
+
+\begin{frame}{Backup: why power was not measured}
+\small
+\begin{itemize}
+  \item Our jobs run on one partition (MIG slice) of a shared NVIDIA B200
+  \item The GPU reports power only for the \textbf{whole card}, including other users' jobs; power per partition is ``not supported''; the cluster records no energy per job
+  \item Test: 30 s idle / 30 s steady load, alternating. The card drew 280--503 W while our partition was idle; our load added 6--78 W, not repeatably
+\end{itemize}
+\take{The energy of one job cannot be separated from the card's. It needs an exclusive card or an edge device.}
+\end{frame}
+
+\end{document}

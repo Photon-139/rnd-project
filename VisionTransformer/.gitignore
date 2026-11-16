@@ -1,0 +1,57 @@
+# Whitelist: everything in this folder stays local unless re-included below.
+/*
+
+# --- Repo files ---
+!/.gitignore
+!/README.md
+!/requirements.txt
+
+# --- Code (current pipeline) ---
+!/*.py
+/models_legacy.py
+/power_metrics.py
+!/job_scripts.zip
+!/tests/
+!/memory_model/
+
+# --- Results: every per-run JSON (training, profiles, merge, latency) in one archive ---
+# The results*/ folders themselves stay local; rebuild the archive after any change to them.
+!/results.zip
+
+# --- SLURM logs (cluster paths replaced by <REPO>, <DATA_ROOT>, <VENV>) ---
+!/logs.zip
+
+# --- Aggregated tables ---
+!/report_swinb/
+!/report_vitb_placement/
+!/report_latency/
+
+# --- Final report and slides ---
+!/final_report/
+!/final_report/data/
+!/presentation/
+/presentation/presenter_guide.md
+
+# --- Never publish, even inside re-included folders ---
+/results/baseline_old/
+/results/legacy/
+/results/summary_job*.json
+/final_report/comments.txt
+*.pt
+*.pth
+*.bin
+*.safetensors
+*.out
+*.err
+__pycache__/
+*.pyc
+.*.swp
+*.aux
+*.log
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+*.nav
+*.snm

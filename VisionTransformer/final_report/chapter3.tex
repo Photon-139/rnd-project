@@ -1,0 +1,111 @@
+\chapter{Experimental Setup}
+\label{ch:setup}
+
+\section{Data, models and configurations}
+
+\paragraph{Data.} CIFAR-100~\cite{krizhevsky2009cifar} has 50,000 training and 10,000 test images of
+$32\times32$ pixels in 100 classes. We hold out 5,000 training images for validation, which leaves 45,000 for
+training. Which images are held out depends on the seed; the test images are the same for every run. The images are
+upsampled to $224\times224$ with bilinear interpolation and normalised with the statistics each model was pretrained
+with. No data augmentation is used.
+
+\paragraph{Models.} The main experiments use ViT-B/16 (\texttt{google/vit-base-patch16-224}) and Swin-B
+(\texttt{microsoft/swin-base-patch4-window7-224}), both pretrained on ImageNet. The closing study also uses DeiT-B
+(\texttt{facebook/deit-base-patch16-224}) and, for memory measurements only, ViT-L
+(\texttt{google/vit-large-patch16-224}). The 1000-class classifier is replaced by a new, randomly initialised
+100-class classifier, which is always trained.
+
+\paragraph{Full fine-tuning (FT).} All weights are trained. The learning rate is the one with the lowest
+validation loss among four rates tried (Section~\ref{sec:lr}): $3\times10^{-5}$ for ViT-B and $10^{-5}$ for Swin-B.
+
+\paragraph{LoRA.} Rank $r=8$, scaling $\alpha=16$ and learning rate $10^{-4}$ unless stated otherwise. Three
+\emph{targets} are compared, on all blocks: \emph{Attn} (adapters on the query, key and value projections),
+\emph{MLP} (adapters on the two linear layers of the MLP) and \emph{Attn+MLP}. Four \emph{placements} of attention
+LoRA on half of the blocks are compared with all blocks: the \emph{first half} (blocks 0--5 of ViT-B, 0--11 of
+Swin-B), the \emph{second half}, the \emph{even} blocks (0, 2, \ldots) and the \emph{odd} blocks (1, 3, \ldots).
+LoRA trains 0.3--1.6 million parameters against 86--87 million for full fine-tuning (Table~\ref{tab:params} in the
+appendix).
+
+\paragraph{Training.} All runs use 32-bit floating point, the AdamW optimiser~\cite{loshchilov2019adamw} with
+weight decay 0.01, a constant learning rate, batch size 64 and at most 50 epochs. After every epoch the loss on the
+validation images is computed. An epoch counts as an improvement only if its validation loss is more than 0.001
+below the best so far, and only then are its weights saved. Training stops after 5 epochs without an improvement,
+and the saved weights are tested. We call the epoch whose weights are tested the \emph{best epoch} and the last
+epoch the \emph{stopping epoch}.
+
+\paragraph{Seeds.} Every configuration of the main experiments is run with the five seeds 42, 123, 456, 789 and
+1024; the learning-rate check and the training runs of the closing study use the first three. The seed fixes the
+validation split, the initial values of the new weights and the order of the training batches. The runs are
+\emph{seeded}, but two runs with the same seed are not bit-identical on the GPU; repeated ViT-B runs differ by up to
+a few tenths of a point (Appendix~\ref{app:impl}).
+
+\paragraph{Hardware and software.} All runs use one partition (44.25~GiB) of an NVIDIA B200 GPU, which NVIDIA's
+Multi-Instance GPU mechanism divides into partitions; the other partitions were used by other jobs at the same
+time. The software is PyTorch~\cite{paszke2019pytorch} with the HuggingFace Transformers and
+PEFT~\cite{mangrulkar2022peft} libraries. Every ViT-B LoRA configuration of Chapters~\ref{ch:lora_ft} and~\ref{ch:placement} was also trained with our own
+implementation of the model and of LoRA, from identical initial weights; the two implementations agree closely
+(Appendix~\ref{app:impl}), and the tables give the library results.
+
+\section{Metrics}
+\label{sec:metrics}
+
+\begin{itemize}
+  \item \textbf{Test accuracy}: accuracy on the 10,000 test images of the weights kept by early stopping.
+        Differences between accuracies are given in percentage points (pp).
+  \item \textbf{Validation loss}: the cross-entropy loss (lower is better) of the kept weights on the 5,000
+        validation images. It decides which weights are tested, and we use it to choose between learning rates, so
+        that the test set plays no part in any choice.
+  \item \textbf{Mean $\pm$ standard deviation}: all tables give the mean and the sample standard deviation over
+        the seeds.
+  \item \textbf{Paired difference}: the difference between two configurations computed seed by seed, then
+        averaged. It removes the variation that comes from the seed.
+  \item \textbf{Detectable difference}: a paired difference whose mean is larger in size than its standard
+        deviation and which has the same sign in at least 4 of 5 seeds (all 3 where only 3 exist). Differences of
+        about 0.2~pp are usually not detectable with 5 seeds. ``No detectable difference'' does not mean that two
+        configurations are equivalent. The rule is a description of the seeds we have, not a significance test:
+        with 5 seeds, a mean equal to the standard deviation is what a paired $t$-test would accept only at about
+        the 10\% level.
+  \item \textbf{Epoch time}: the time of one pass over the 45,000 training images (\emph{train}) or, without
+        gradients, over the 5,000 validation images (\emph{validation}), averaged over the epochs of a run. Methods
+        are compared by epoch time. The total time of a run depends on the number of epochs before early stopping,
+        which varies for reasons unrelated to the cost of an epoch; totals are listed in the appendix and are not
+        used for comparisons.
+  \item \textbf{Forward, backward and optimiser time}: time per training batch of the forward pass, of the loss
+        and backward pass, and of the optimiser step (first epoch excluded).
+  \item \textbf{Peak training memory}: the largest amount of GPU memory occupied by tensors at any moment of
+        training, as counted by PyTorch, in GiB ($1024^3$ bytes), at batch size 64 unless stated otherwise. It
+        excludes the memory of the GPU runtime and memory that PyTorch has reserved but is not using (3--8\% more).
+        \textbf{Static memory} is its batch-independent part (weights, gradients, optimiser state) and
+        \textbf{activation memory} the part kept for the backward pass (Section~\ref{sec:bg_memory}).
+  \item \textbf{Inference memory}: the peak memory occupied by tensors during a forward pass without gradients.
+  \item \textbf{Stored size}: what must be stored per task, at 4 bytes per trained value.
+  \item \textbf{Unmerged, merged, dense}: a LoRA model with the adapters as separate layers; with the adapters
+        added into the weights; a model without adapters.
+  \item \textbf{Latency}: the time to classify one test image \emph{end to end} (preparing the image, copying it
+        to the GPU, the forward pass, copying the class back); p50 is the median over the test images.
+        \textbf{Throughput}: test images classified per second in batches.
+\end{itemize}
+
+\section{Measurement procedures}
+\label{sec:procedures}
+
+\paragraph{Training runs} record accuracy, validation loss, times and peak and static memory on CIFAR-100.
+
+\paragraph{Memory profiler.} A separate script measures the memory of one training step or one forward pass at
+batch sizes from 1 to 256, on random inputs of the shape of the images. These models perform the same operations
+whatever the values, so the values do not change the memory: the profiler's peak at batch size 64 agrees with the
+training runs to within 0.004~GiB (4~MiB) for every configuration, the peak is the same with a trained adapter as with a
+random one, and it is identical across the seeds of a configuration. One profiler run per configuration is
+therefore sufficient. The agreement is exact for the ViT-B LoRA configurations and within 0.3~MiB for ViT-B full
+fine-tuning; on Swin-B the two differ by up to 4~MiB (0.03\% of the peak) in either direction. The two are not the
+same procedure (a training run records the largest value over all batches of an epoch, the profiler the median of
+five separate steps), and we did not trace the remaining Swin-B difference.
+
+\paragraph{Merging and latency.} These use the adapter trained with seed 42. For merging we compare the
+predictions on all 10,000 test images before and after merging, and after 100 cycles of merging and unmerging. For
+latency, the test images are classified one at a time in evaluation mode without gradients; 50 warm-up images are
+not timed, 9,950 are, and every timed pass ends by waiting until the GPU has finished. Throughput is measured on
+2,048 prepared test images in batches of 1 to 128. Each configuration is measured in three separate processes, two
+of which time the unmerged model first, and we report their mean. Full fine-tuning is timed with the pretrained
+weights and a new classifier, which have the same shapes, and therefore the same speed, as a fine-tuned model. The
+CPU latency uses the same models with 4 threads, 190 timed images and one process.

@@ -1,0 +1,10 @@
+# Versions used for the GPU runs (recorded in every result JSON, env_info):
+# Python 3.12.3, CUDA 12.8, NVIDIA B200 (MIG 1g.45gb).
+torch==2.11.0
+torchvision
+transformers==5.16.1
+peft==0.20.0
+numpy
+pillow
+# Only for power_probe_2.py:
+nvidia-ml-py

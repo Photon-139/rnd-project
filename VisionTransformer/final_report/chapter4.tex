@@ -1,0 +1,207 @@
+\chapter{LoRA and Full Fine-Tuning: Accuracy and Training Cost}
+\label{ch:lora_ft}
+
+This chapter compares LoRA on all blocks (rank 8) with full fine-tuning on both models.
+Sections~\ref{sec:lr} to~\ref{sec:targets} are about accuracy, Sections~\ref{sec:mem} to~\ref{sec:size} about the
+cost of training.
+
+\section{Choosing the learning rates}
+\label{sec:lr}
+
+A comparison of two training methods is only fair if each is run at a learning rate that suits it. Full
+fine-tuning changes all pretrained weights and needs a small rate; LoRA trains small matrices that start at zero
+and tolerates a larger one. We therefore ran each method at four rates on each model, with three seeds (42, 123,
+456), and chose the rate with the lowest validation loss (Table~\ref{tab:lr}, Figure~\ref{fig:lr}).
+
+\begin{table}[!htb]
+\centering\small
+\begin{tabular}{llccc}
+\toprule
+method & learning rate & validation loss & test acc.\ (\%) & stopping epoch \\
+\midrule
+\rawinput{data/tab_lr.tex}
+\bottomrule
+\end{tabular}
+\caption{Full fine-tuning and attention LoRA (rank 8, all blocks) at four learning rates each; mean $\pm$ standard
+deviation over 3 seeds. $^{*}$ = lowest mean validation loss of the method on that model. The ViT-B runs of full
+fine-tuning at $10^{-4}$ are from an earlier set of runs with the same settings.}
+\label{tab:lr}
+\end{table}
+
+\begin{figure}[!htb]
+\centering
+\input{figures/lr_check}
+\caption{Validation loss (top) and test accuracy (bottom) against the learning rate, 3 seeds. Circles mark the
+rates used in the main comparison: for full fine-tuning the rate with the lowest validation loss, for LoRA $10^{-4}$.}
+\label{fig:lr}
+\end{figure}
+
+\paragraph{Full fine-tuning.} On both models the validation loss has a clear minimum inside the range tried: at
+$3\times10^{-5}$ on ViT-B and at $10^{-5}$ on Swin-B, with higher loss at the neighbouring rates on both sides. The
+choice matters. On ViT-B, full fine-tuning at $10^{-5}$ is 0.43 $\pm$ 0.06~pp less accurate than at $3\times10^{-5}$
+and at $10^{-4}$ it is 1.14 $\pm$ 0.19~pp less accurate (paired, all three seeds); with all five seeds the difference
+between $3\times10^{-5}$ and $10^{-5}$ is 0.60 $\pm$ 0.23~pp, in every seed. On Swin-B, full fine-tuning at $10^{-4}$
+is 2.8~pp below its best rate.
+
+\paragraph{LoRA.} On ViT-B, $10^{-4}$ and $3\times10^{-4}$ have almost the same validation loss (difference 0.002
+$\pm$ 0.005, both signs), and the two outer rates are worse in every seed. On Swin-B, $3\times10^{-5}$ and
+$10^{-4}$ have the same validation loss (0.000 $\pm$ 0.005), and the two higher rates are worse in every seed. The
+rate $10^{-4}$ is therefore at, or tied with, LoRA's best rate on both models, and it is the rate used for all LoRA
+runs below.
+
+\paragraph{Reference.} In the rest of the report, full fine-tuning means the rate $3\times10^{-5}$ on ViT-B and
+$10^{-5}$ on Swin-B, each run with all five seeds.
+
+\section{Accuracy of LoRA against full fine-tuning}
+\label{sec:acc}
+
+\begin{table}[!htb]
+\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+ & test acc. & vs full FT & seeds & val. & vs full FT, & best / \\
+config & (\%) & (pp, paired) & above FT & loss & val.\ loss (paired) & stop ep. \\
+\midrule
+\rawinput{data/tab_acc.tex}
+\bottomrule
+\end{tabular}
+\caption{LoRA (rank 8, all blocks, learning rate $10^{-4}$) and full fine-tuning at its best rate; mean $\pm$
+standard deviation over 5 seeds. vs full FT = paired difference to full fine-tuning with the same seed, for test
+accuracy and for validation loss (negative = LoRA has the lower loss). Seeds above FT = number of seeds in which
+LoRA has the higher test accuracy. Best / stop ep.\ = mean best and stopping epoch. Per seed:
+Appendix~\ref{app:seeds}.}
+\label{tab:acc}
+\end{table}
+
+\begin{figure}[!htb]
+\centering
+\input{figures/acc_seeds}
+\caption{Test accuracy of full fine-tuning and of the three LoRA targets, per seed.}
+\label{fig:acc_seeds}
+\end{figure}
+
+\paragraph{Swin-B: LoRA is more accurate.} All three LoRA configurations are above full fine-tuning, by
+0.43--0.48~pp, in 5, 5 and 4 of the 5 seeds (Table~\ref{tab:acc}, Figure~\ref{fig:acc_seeds}). All three
+differences are detectable. In the learning-rate check, attention LoRA is above full fine-tuning at its best rate in
+all three seeds, at both of its tied rates: by 0.50 $\pm$ 0.16~pp at $10^{-4}$ and by 0.35 $\pm$ 0.27~pp at
+$3\times10^{-5}$.
+
+\paragraph{ViT-B: LoRA is level with or slightly below full fine-tuning, and never ahead.} MLP and Attn+MLP do not differ detectably from
+full fine-tuning ($+$0.04 $\pm$ 0.22 and $+$0.12 $\pm$ 0.21~pp). Attention LoRA is 0.21 $\pm$ 0.13~pp \emph{below}
+it, in all five seeds, which is a detectable difference. Two further measurements show how far this difference can
+be trusted:
+\begin{itemize}
+  \item At the rate $3\times10^{-4}$, which has the same validation loss as $10^{-4}$, attention LoRA is level with
+        full fine-tuning: $+$0.08 $\pm$ 0.27~pp (3 seeds, Table~\ref{tab:lr}).
+  \item The full fine-tuning reference was trained in a later set of runs than the LoRA runs of
+        Table~\ref{tab:acc}. Attention LoRA at $10^{-4}$ was therefore trained again together with it, with three
+        seeds. This repeated set is 0.19~pp more accurate than the runs of Table~\ref{tab:acc} on the same seeds,
+        and it is level with full fine-tuning ($-$0.04 $\pm$ 0.29~pp). Two sets of ViT-B runs with identical
+        settings and seeds can thus differ by about as much as the difference in question
+        (Appendix~\ref{app:impl}).
+\end{itemize}
+We conclude that on ViT-B, LoRA is within about 0.2~pp of full fine-tuning: MLP and Attn+MLP show no detectable
+difference, attention LoRA is at most 0.2~pp below, and there is no evidence that any of them is better.
+
+\paragraph{Validation loss.} LoRA has the lower validation loss than full fine-tuning in all 30 seed pairs, by about
+0.03 on ViT-B and 0.02 on Swin-B. On Swin-B this agrees with the test accuracy. On ViT-B it does not turn into
+higher test accuracy; a lower loss does not have to mean more correct predictions.
+
+\paragraph{What this comparison depends on.} Against full fine-tuning at $10^{-5}$ instead of $3\times10^{-5}$, LoRA
+would appear 0.4--0.7~pp better on ViT-B in every seed. The outcome of a comparison between LoRA and full
+fine-tuning can therefore be decided by how well full fine-tuning is tuned. Three further limits apply: the rates
+were varied with three seeds and for the attention target only; accuracy on CIFAR-100 is close to saturated for
+these models; and with five seeds, differences of about 0.2~pp can be neither shown nor ruled out. We did not test
+why LoRA, which trains less than 2\% of the weights, loses nothing on Swin-B.
+
+\section{Targets and rank}
+\label{sec:targets}
+
+\paragraph{Targets.} On Swin-B no difference between the three targets is detectable (paired differences between
+$-$0.05 and $+$0.01~pp). On ViT-B at learning rate $10^{-4}$, MLP and Attn+MLP are more accurate than attention
+alone, by 0.25 $\pm$ 0.16 and 0.33 $\pm$ 0.16~pp, in every seed. This ranking holds at that rate only: the rate was
+varied for attention alone, and at $3\times10^{-4}$ attention LoRA is level with the other two at $10^{-4}$
+($+$0.13 $\pm$ 0.24~pp against MLP, $-$0.07 $\pm$ 0.24~pp against Attn+MLP; 3 seeds). We therefore do not conclude
+that one target is more accurate than another. What differs clearly between the targets is their cost
+(Section~\ref{sec:mem}).
+
+\paragraph{Rank.}
+\label{sec:rank}
+ViT-B was also trained with rank 16 for all three targets, with five seeds, in an earlier set of runs that includes
+its own rank-8 runs. Rank 16 gives no gain: the paired differences to rank 8 are $-$0.15 $\pm$ 0.12~pp (attention),
+$-$0.02 $\pm$ 0.13~pp (MLP) and $+$0.05 $\pm$ 0.12~pp (Attn+MLP). For attention, rank 16 is detectably lower in the
+library implementation (in all five seeds), but our own implementation shows no such effect ($+$0.02 $\pm$ 0.04~pp). Peak memory rises by less than 0.04~GiB
+(Table~\ref{tab:rank} in the appendix). Rank 16 was not run on Swin-B.
+
+\section{Training memory}
+\label{sec:mem}
+
+\begin{figure}[!htb]
+\centering
+\input{figures/mem_targets}
+\caption{Peak training memory at batch size 64, with the saving against full fine-tuning. The values are
+identical in all 5 seeds.}
+\label{fig:mem_targets}
+\end{figure}
+
+The pattern is the same on both models (Figure~\ref{fig:mem_targets}; Table~\ref{tab:mem} in the appendix). LoRA
+reduces the static memory from about 1.3 to 0.33--0.35~GiB, because gradients and optimiser state are kept only for
+the adapters. But static memory is the small part: the peak of full fine-tuning is 8.2~GiB on ViT-B and 14.1~GiB on Swin-B, of
+which only 1.3~GiB is static; the rest is activation memory. How much of it LoRA removes depends on the target, for the reason given in
+Section~\ref{sec:bg_memory}: a frozen layer without an adapter does not keep its input, an adapted layer does, and
+the input of the second MLP layer is four times wider than that of the attention projections. On both models
+attention LoRA saves about a third of the peak memory (33\% and 32\%), MLP LoRA about a seventh (14\% and 15\%), and
+Attn+MLP about 6\%.
+
+\begin{figure}[!htb]
+\centering
+\input{figures/saving_batch}
+\caption{Saving in peak training memory against full fine-tuning for batch sizes 1 to 128 (one training step,
+profiler). Full fine-tuning of Swin-B does not fit on the 44.25~GiB partition at batch size 256.}
+\label{fig:saving_batch}
+\end{figure}
+
+The relative saving is largest for small batches (Figure~\ref{fig:saving_batch}; Table~\ref{tab:batch} in the
+appendix). At batch size 1 every LoRA target needs 66--74\% less memory than full fine-tuning, because the static
+memory, which LoRA cuts to a quarter, is then the larger part. As the batch grows, activation memory takes over and
+the saving falls towards the share of the activations that the target avoids: at batch size 128 it is 31\% for
+attention on both models, 11--13\% for MLP and 3--4\% for Attn+MLP. Small batches are where memory-limited devices
+operate, so this is the favourable case for LoRA.
+
+\section{Training time}
+\label{sec:time}
+
+\begin{figure}[!htb]
+\centering
+\input{figures/time_batch}
+\caption{Time per training batch of 64 images, split into forward pass, backward pass and optimiser step (mean
+over 5 seeds).}
+\label{fig:time_batch}
+\end{figure}
+
+A training epoch is 19--26\% shorter with LoRA on ViT-B (323--354~s against 439~s) and 12--22\% shorter on Swin-B
+(378--428~s against 485~s); the standard deviation over seeds is about 1~s or less (Table~\ref{tab:time} in the
+appendix).
+Figure~\ref{fig:time_batch} shows where the time goes. The backward pass becomes much faster (from 408 to
+235--264~ms per batch on ViT-B, from 436 to 271--315~ms on Swin-B), because no gradients are computed for the frozen
+weights, and the optimiser step, which updates 53--165 times fewer values, becomes negligible. The forward pass
+becomes slightly \emph{slower}, because during training the adapters are separate layers that add operations. For
+the same reason a validation epoch, which consists of forward passes only, is 6--13\% slower with LoRA on ViT-B and
+7--18\% slower on Swin-B; it is a small part of the total (17--23~s).
+
+\section{Stored size}
+\label{sec:size}
+
+Counted as 4 bytes per trained value, a LoRA task with adapters on all blocks is stored in 2.0--4.8~MiB on ViT-B and 2.6--6.3~MiB on Swin-B,
+against 328 and 331~MiB for a fully fine-tuned model. This is an advantage only when the base model is already on
+the device, for example when several tasks share it and each adds its own adapter. For a single task nothing is
+gained: the merged LoRA model has exactly the size of a fully fine-tuned one (Chapter~\ref{ch:deploy}).
+
+\section{Summary}
+
+With both methods at their best learning rates, LoRA at rank 8 is more accurate than full fine-tuning on Swin-B and
+level with or slightly below it on ViT-B. The cost differs clearly between the targets, in the same way on both models: attention LoRA
+saves a third of the training memory at batch size 64, and more at smaller batches, and shortens the training epoch
+by about a quarter; adapters on the MLP save much less memory. No target is reliably more accurate than another, so
+attention is the target with the best balance of accuracy and cost, and the following chapters use it.

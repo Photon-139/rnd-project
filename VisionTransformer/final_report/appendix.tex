@@ -1,0 +1,397 @@
+\chapter{Results per Seed}
+\label{app:seeds}
+
+\begin{table}[H]
+\centering\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\begin{tabular}{llccccc}
+\toprule
+config & impl & 42 & 123 & 456 & 789 & 1024 \\
+\midrule
+Full FT & library & 91.51 (3/8) & 91.19 (2/7) & 91.24 (3/8) & 91.42 (2/7) & 91.19 (2/7) \\
+Attn & library & 91.17 (6/11) & 91.12 (4/9) & 90.97 (6/11) & 91.12 (5/10) & 91.13 (5/10) \\
+ & scratch & 91.07 (6/11) & 91.14 (4/9) & 90.99 (6/11) & 91.11 (5/10) & 91.14 (5/10) \\
+MLP & library & 91.30 (3/8) & 91.16 (3/8) & 91.33 (4/9) & 91.40 (4/9) & 91.57 (3/8) \\
+ & scratch & 91.41 (3/8) & 91.02 (3/8) & 91.20 (4/9) & 91.32 (4/9) & 91.57 (3/8) \\
+Attn+MLP & library & 91.44 (3/8) & 91.38 (3/8) & 91.57 (3/8) & 91.30 (4/9) & 91.47 (3/8) \\
+ & scratch & 91.45 (3/8) & 91.43 (3/8) & 91.46 (3/8) & 91.44 (4/9) & 91.41 (3/8) \\
+Attn, first half & library & 91.33 (8/13) & 91.39 (8/13) & 91.13 (7/12) & 91.40 (9/14) & 91.32 (8/13) \\
+ & scratch & 91.17 (8/13) & 91.41 (9/14) & 91.18 (7/12) & 91.37 (9/14) & 91.38 (8/13) \\
+Attn, even blocks & library & 91.08 (7/12) & 90.95 (9/14) & 91.01 (7/12) & 91.15 (7/12) & 91.04 (8/13) \\
+ & scratch & 91.04 (7/12) & 91.10 (8/13) & 91.02 (7/12) & 91.20 (7/12) & 91.06 (8/13) \\
+Attn, odd blocks & library & 90.62 (6/11) & 91.21 (6/11) & 90.82 (6/11) & 90.94 (8/13) & 90.84 (7/12) \\
+ & scratch & 90.88 (8/13) & 91.14 (6/11) & 90.82 (6/11) & 91.08 (8/13) & 90.90 (7/12) \\
+Attn, second half & library & 89.73 (6/11) & 89.51 (6/11) & 89.61 (8/13) & 89.42 (7/12) & 89.45 (7/12) \\
+ & scratch & 89.73 (6/11) & 89.51 (6/11) & 89.61 (8/13) & 89.42 (7/12) & 89.45 (7/12) \\
+\bottomrule
+\end{tabular}
+\caption{ViT-B: test accuracy (\%) per seed, with best / stopping epoch in brackets, for both implementations (full
+fine-tuning: library only). Column headers are seeds. Full FT at learning rate $3\times10^{-5}$; LoRA at rank 8
+and learning rate $10^{-4}$.}
+\label{tab:vitb_seed}
+\end{table}
+
+\begin{table}[H]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{lccccc}
+\toprule
+config & 42 & 123 & 456 & 789 & 1024 \\
+\midrule
+Full FT & 91.00 (3/8) & 91.60 (4/9) & 91.38 (3/8) & 91.19 (3/8) & 91.15 (3/8) \\
+Attn & 91.67 (6/11) & 91.96 (10/15) & 91.86 (7/12) & 92.00 (9/14) & 91.23 (5/10) \\
+MLP & 91.74 (5/10) & 91.64 (4/9) & 91.75 (4/9) & 91.94 (5/10) & 91.40 (4/9) \\
+Attn+MLP & 91.84 (4/9) & 91.54 (3/8) & 91.67 (4/9) & 91.99 (5/10) & 91.46 (3/8) \\
+Attn, first half & 91.29 (11/16) & 91.29 (12/17) & 91.48 (12/17) & 91.63 (13/18) & 91.12 (16/21) \\
+Attn, even blocks & 91.44 (7/12) & 91.75 (10/15) & 91.67 (9/14) & 91.78 (9/14) & 91.95 (13/18) \\
+Attn, odd blocks & 91.49 (6/11) & 92.22 (10/15) & 92.00 (11/16) & 91.77 (8/13) & 91.63 (8/13) \\
+Attn, second half & 90.42 (6/11) & 90.73 (8/13) & 90.76 (9/14) & 90.59 (8/13) & 90.33 (5/10) \\
+\bottomrule
+\end{tabular}
+\caption{Swin-B: test accuracy (\%) per seed, with best / stopping epoch in brackets. Rows as in
+Table~\ref{tab:vitb_seed}; full FT at learning rate $10^{-5}$.}
+\label{tab:swin_seed}
+\end{table}
+
+
+
+\chapter{Cost Tables}
+\label{app:cost}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{lrr}
+\toprule
+configuration & ViT-B & Swin-B \\
+\midrule
+Full FT & 85,875,556 & 86,845,724 \\
+Attn, all blocks & 519,268 & 680,036 \\
+MLP, all blocks & 814,180 & 1,065,060 \\
+Attn+MLP, all blocks & 1,256,548 & 1,642,596 \\
+Attn, first half & 298,084 & 335,972 \\
+Attn, even blocks / odd blocks & 298,084 & 391,268 \\
+Attn, second half & 298,084 & 446,564 \\
+\bottomrule
+\end{tabular}
+\caption{Trainable parameters, including the classifier (76,900 for ViT-B, 102,500 for Swin-B). The blocks of
+Swin-B differ in width, so its placements do not have the same number of adapter parameters.}
+\label{tab:params}
+\end{table}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{lcccc}
+\toprule
+config & static (GiB) & activation (GiB) & peak (GiB) & saving against full FT \\
+\midrule
+\multicolumn{5}{l}{\emph{ViT-B}} \\
+Full FT & 1.280 & 7.01 & 8.174 & -- \\
+Attn & 0.328 & 4.83 & 5.459 & 33.2\% \\
+MLP & 0.332 & 6.38 & 7.011 & 14.2\% \\
+Attn+MLP & 0.339 & 7.00 & 7.643 & 6.5\% \\
+\midrule
+\multicolumn{5}{l}{\emph{Swin-B}} \\
+Full FT & 1.294 & 13.00 & 14.121 & -- \\
+Attn & 0.334 & 8.99 & 9.549 & 32.4\% \\
+MLP & 0.339 & 11.45 & 12.007 & 15.0\% \\
+Attn+MLP & 0.348 & 12.74 & 13.290 & 5.9\% \\
+\bottomrule
+\end{tabular}
+\caption{Training memory at batch size 64. Static = weights, gradients and optimiser state; peak = largest memory in
+use during training (training runs, identical in all 5 seeds). Activation = memory added during the forward pass and
+kept for the backward pass (profiler). Static plus activation is not exactly the peak: for full fine-tuning the
+gradients are created while activations are already being freed, and for LoRA the backward pass briefly holds
+gradients of intermediate results.}
+\label{tab:mem}
+\end{table}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{lcccccc}
+\toprule
+batch size & 1 & 8 & 16 & 32 & 64 & 128 \\
+\midrule
+\rawinput{data/tab_batch.tex}
+\bottomrule
+\end{tabular}
+\caption{Peak training memory (GiB) against batch size, and the saving of each LoRA target against full fine-tuning
+(profiler, one training step).}
+\label{tab:batch}
+\end{table}
+
+\begin{table}[H]
+\centering\footnotesize
+\setlength{\tabcolsep}{1.8pt}
+\begin{tabular}{lcccc}
+\toprule
+ & train epoch (s) & validation epoch (s) & forward / backward / & stopping epoch; \\
+config & (vs full FT) & (vs full FT) & optimiser (ms per batch) & total (h), train / val \\
+\midrule
+\rawinput{data/tab_time.tex}
+\bottomrule
+\end{tabular}
+\caption{Training time (mean over 5 seeds). Train and validation epoch: one pass over the 45,000 training images
+and, without gradients, over the 5,000 validation images. Forward / backward / optimiser: time per training batch of
+64 images. The total time of a run is the epoch time multiplied by the number of epochs before early stopping, which
+differs between configurations; it is listed for completeness and is not used to compare configurations.}
+\label{tab:time}
+\end{table}
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{lccccc}
+\toprule
+ & \multicolumn{2}{c}{test acc.\ (\%)} & rank 16 $-$ rank 8 & \multicolumn{2}{c}{peak memory (GiB)} \\
+target & rank 8 & rank 16 & (pp, paired) & rank 8 & rank 16 \\
+\midrule
+Attn & 91.21 & 91.06 & $-$0.15 $\pm$ 0.12 & 5.459 & 5.478 \\
+MLP & 91.31 & 91.30 & $-$0.02 $\pm$ 0.13 & 7.011 & 7.028 \\
+Attn+MLP & 91.44 & 91.50 & $+$0.05 $\pm$ 0.12 & 7.644 & 7.679 \\
+\bottomrule
+\end{tabular}
+\caption{ViT-B, rank 16 against rank 8 (library implementation, 5 seeds, learning rate $10^{-4}$; an earlier set of
+runs with the same settings). Peak memory at batch size 64.}
+\label{tab:rank}
+\end{table}
+
+\begin{table}[H]
+\centering\footnotesize
+\begin{tabular}{lccc}
+\toprule
+comparison (3 seeds) & predicted (pp) & measured (pp, paired) & validation loss (paired) \\
+\midrule
+DeiT-B, blocks 3--11 $-$ all & $-$0.7 [$-$1.4, $-$0.2] & $+$0.15 $\pm$ 0.04 & $-$0.010 $\pm$ 0.002 \\
+DeiT-B, blocks 6--11 $-$ all & $-$1.4 [$-$2.5, $-$0.7] & $-$0.32 $\pm$ 0.35 & $+$0.016 $\pm$ 0.003 \\
+ViT-B, blocks 3--11 $-$ all & $-$0.8 [$-$1.4, $-$0.2] & $-$0.31 $\pm$ 0.27 & $+$0.016 $\pm$ 0.003 \\
+ViT-B, blocks 6--11 $-$ all & (known) & $-$1.66 $\pm$ 0.24 & $+$0.061 $\pm$ 0.004 \\
+\bottomrule
+\end{tabular}
+\caption{Closing study: accuracy against the first adapted block; predictions written before the runs, with their ranges, and the
+measurements (seeds 42, 123, 456). Absolute accuracies: DeiT-B 86.56 $\pm$ 0.19\% (all blocks), 86.71 $\pm$ 0.22\%
+(3--11), 86.24 $\pm$ 0.39\% (6--11); ViT-B 91.28 $\pm$ 0.14\% (all blocks, trained together with blocks 3--11), 90.97 $\pm$ 0.13\% (3--11), 89.62 $\pm$
+0.11\% (6--11). Against the earlier all-blocks runs of Chapter~\ref{ch:placement} (91.09 $\pm$ 0.10\% on these
+seeds), the ViT-B differences are $-$0.12 $\pm$ 0.21 and $-$1.47 $\pm$ 0.13~pp.}
+\label{tab:acc_pred}
+\end{table}
+
+\chapter{The Two Implementations of ViT-B and Run-to-Run Variation}
+\label{app:impl}
+
+Every ViT-B LoRA configuration was trained with the HuggingFace and PEFT libraries (\emph{library}) and with our own
+implementation of the model and of LoRA (\emph{scratch}), from identical initial weights and with the same seeds.
+Table~\ref{tab:impl} compares them. Over the seven configurations and 35 seed pairs, the mean accuracies differ by at
+most 0.08~pp and single seeds by at most 0.26~pp; peak memory differs by at most 0.003~GiB; and the stopping epoch is
+the same in 32 of the 35 pairs. The numbers of trainable parameters are identical. The two implementations can
+therefore be used interchangeably for the results of this report. (In the earlier runs of full fine-tuning at
+learning rate $10^{-4}$, the scratch implementation was 0.56~pp lower, in 4 of 5 seeds; this rate is not used as a
+reference.)
+
+\begin{table}[H]
+\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lcccccc}
+\toprule
+ & \multicolumn{2}{c}{test acc.\ (\%)} & \multicolumn{2}{c}{scratch $-$ library (pp)} & peak memory & same stopping \\
+config & library & scratch & mean & largest, one seed & difference (GiB) & epoch \\
+\midrule
+Attn & 91.10 & 91.09 & $-$0.01 & 0.10 & 0.001 & 5 of 5 \\
+MLP & 91.35 & 91.30 & $-$0.05 & 0.14 & 0.002 & 5 of 5 \\
+Attn$+$MLP & 91.43 & 91.44 & $+$0.01 & 0.14 & 0.003 & 5 of 5 \\
+Attn, first half & 91.31 & 91.30 & $-$0.01 & 0.16 & 0.000 & 4 of 5 \\
+Attn, even blocks & 91.05 & 91.08 & $+$0.04 & 0.15 & 0.001 & 4 of 5 \\
+Attn, odd blocks & 90.89 & 90.96 & $+$0.08 & 0.26 & 0.001 & 4 of 5 \\
+Attn, second half & 89.54 & 89.54 & $+$0.00 & 0.00 & 0.001 & 5 of 5 \\
+\bottomrule
+\end{tabular}
+\caption{ViT-B: our own implementation (scratch) against the library implementation, 5 seeds per configuration.}
+\label{tab:impl}
+\end{table}
+
+\section*{Run-to-run variation on the GPU}
+\label{app:variation}
+\addcontentsline{toc}{section}{Run-to-run variation on the GPU}
+
+Attention LoRA on all blocks of ViT-B was trained in two separate sets of runs with the same settings and seeds
+(Table~\ref{tab:repeat}). Memory and the number of trainable parameters are the same, and 9 of the 10 runs stopped
+at the same epoch. Accuracy differs by 0.04--0.15~pp per seed, and by 0.36~pp in one run. Two ViT-B runs with the
+same seed are not bit-identical on the GPU, and a small difference can change which epoch early stopping keeps: in
+the run that differs by 0.36~pp, one epoch improved the validation loss by 0.0019 in the first run, just above the
+required 0.001, and by 0.0001 in the second. A difference smaller than about 0.4~pp between two single ViT-B runs
+should therefore not be interpreted on its own; we rely on paired differences over several seeds and on their
+signs. Means over seeds are more stable but not exact: the two sets differ by 0.11 and 0.02~pp, and the repeated set
+of Section~\ref{sec:acc} (three library runs, seeds 42, 123, 456: 91.19, 91.44 and 91.20\%) is 0.19~pp above the
+second set of Table~\ref{tab:repeat} on the same seeds.
+
+\begin{table}[H]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{llccccc}
+\toprule
+impl & & 42 & 123 & 456 & 789 & 1024 \\
+\midrule
+library & first set of runs & 91.07 (11) & 91.48 (10) & 91.12 (11) & 91.17 (10) & 91.21 (10) \\
+        & second set of runs & 91.17 (11) & 91.12 (9)  & 90.97 (11) & 91.12 (10) & 91.13 (10) \\
+scratch & first set of runs & 91.11 (11) & 91.07 (9)  & 91.03 (11) & 91.16 (10) & 91.19 (10) \\
+        & second set of runs & 91.07 (11) & 91.14 (9)  & 90.99 (11) & 91.11 (10) & 91.14 (10) \\
+\bottomrule
+\end{tabular}
+\caption{ViT-B attention LoRA on all blocks: test accuracy (\%) and stopping epoch (in brackets) per seed in two
+sets of runs with the same settings. Column headers are seeds.}
+\label{tab:repeat}
+\end{table}
+
+\chapter{Additional Deployment Tables}
+\label{app:latency}
+
+\begin{table}[p]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{llcccccc}
+\toprule
+ & & \multicolumn{2}{c}{end to end (ms)} & forward & forward, CUDA & images/s & CPU forward \\
+config & variant & p50 & p99 & (ms) & graph (ms) & at batch 64 & (ms) \\
+\midrule
+\multicolumn{8}{l}{\emph{ViT-B}} \\
+Full FT & dense & 7.12 & 7.27 & 6.32 & 6.34 & 305 & 60.9 \\
+Attn & unmerged & 8.29 & 8.62 & 7.47 & 7.21 & 290 & 65.4 \\
+ & merged & 7.14 & 7.26 & 6.32 & 6.34 & 305 & 60.3 \\
+MLP & unmerged & 8.13 & 8.33 & 7.31 & 7.12 & 284 & 65.9 \\
+ & merged & 7.14 & 7.34 & 6.33 & 6.33 & 306 & 60.9 \\
+Attn+MLP & unmerged & 9.23 & 9.45 & 8.41 & 8.00 & 271 & 70.3 \\
+ & merged & 7.15 & 7.29 & 6.33 & 6.33 & 306 & 59.6 \\
+Attn, odd & unmerged & 7.71 & 7.87 & 6.89 & 6.78 & 298 & 63.2 \\
+ & merged & 7.13 & 7.27 & 6.32 & 6.34 & 305 & 60.8 \\
+\midrule
+\multicolumn{8}{l}{\emph{Swin-B}} \\
+Full FT & dense & 9.74 & 10.37 & 8.92 & 7.50 & 263 & 73.2 \\
+Attn & unmerged & 12.79 & 13.51 & 11.97 & 8.86 & 245 & 81.3 \\
+ & merged & 9.80 & 10.23 & 8.99 & 7.51 & 262 & 73.1 \\
+MLP & unmerged & 12.14 & 13.09 & 11.31 & 8.75 & 237 & 83.0 \\
+ & merged & 9.92 & 10.75 & 9.09 & 7.51 & 262 & 72.7 \\
+Attn+MLP & unmerged & 15.06 & 16.38 & 14.24 & 10.12 & 222 & 90.6 \\
+ & merged & 9.83 & 10.44 & 9.01 & 7.51 & 262 & 72.4 \\
+Attn, odd & unmerged & 11.12 & 12.13 & 10.31 & 8.18 & 254 & 76.4 \\
+ & merged & 9.83 & 10.56 & 9.02 & 7.50 & 263 & 72.8 \\
+\bottomrule
+\end{tabular}
+\caption{Predictions on CIFAR-100 test images, one image at a time unless stated. End to end = preparing the image,
+copying it to the GPU, the forward pass and copying the class back; p50 = median over 9,950 images, p99 = the time
+that 99\% of them do not exceed; forward = the forward pass within it. CUDA graph = the forward pass replayed as a
+single GPU launch. Images/s = throughput at batch size 64. GPU values are means over three processes, which agree
+to within 0.1~ms on ViT-B and 0.72~ms on Swin-B. CPU = forward pass of one image on 4 threads (one process). The other three placements behave like the odd blocks (Table~\ref{tab:penalty}).}
+\label{tab:latency}
+\end{table}
+
+
+\begin{table}[H]
+\centering\footnotesize
+\setlength{\tabcolsep}{2.5pt}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{lccccc}
+\toprule
+config & \shortstack{merged vs unmerged:\\max $|\Delta$logit$|$} & \shortstack{test acc. unmerged /\\merged / 100 cycles (\%)} & \shortstack{merge\\(ms)} & \shortstack{load adapter\\file (ms)} & \shortstack{load full\\model (ms)} \\
+\midrule
+ViT-B attn & $3.8\times10^{-6}$ & 91.17 / 91.17 / 91.17 & 2.1 & 4.8 & 100 \\
+ViT-B MLP & $5.0\times10^{-6}$ & 91.30 / 91.30 / 91.30 & 1.5 & 3.8 & 91 \\
+ViT-B attn+MLP & $3.3\times10^{-6}$ & 91.44 / 91.44 / 91.44 & 3.2 & 7.9 & 96 \\
+ViT-B attn, first half & $3.0\times10^{-6}$ & 91.33 / 91.33 / 91.33 & 1.2 & 2.6 & 91 \\
+ViT-B attn, even & $2.1\times10^{-6}$ & 91.08 / 91.08 / 91.08 & 1.2 & 2.7 & 94 \\
+ViT-B attn, odd & $3.8\times10^{-6}$ & 90.62 / 90.62 / 90.62 & 1.2 & 2.7 & 93 \\
+ViT-B attn, second half & $1.4\times10^{-6}$ & 89.73 / 89.73 / 89.73 & 1.2 & 2.7 & 96 \\
+Swin-B attn & $6.1\times10^{-7}$ & 91.67 / 91.67 / 91.67 & 4.0 & 10.0 & 127 \\
+Swin-B MLP & $1.6\times10^{-6}$ & 91.74 / 91.74 / 91.74 & 2.9 & 7.6 & 127 \\
+Swin-B attn+MLP & $1.3\times10^{-6}$ & 91.84 / 91.84 / 91.84 & 6.3 & 16.3 & 133 \\
+Swin-B attn, first half & $1.7\times10^{-6}$ & 91.29 / 91.29 / 91.29 & 2.2 & 5.4 & 108 \\
+Swin-B attn, even & $8.6\times10^{-7}$ & 91.44 / 91.44 / 91.44 & 2.3 & 5.5 & 109 \\
+Swin-B attn, odd & $7.2\times10^{-7}$ & 91.49 / 91.49 / 91.49 & 2.4 & 6.2 & 121 \\
+Swin-B attn, second half & $2.4\times10^{-7}$ & 90.42 / 90.42 / 90.42 & 2.2 & 5.6 & 125 \\
+\bottomrule
+\end{tabular}}
+\caption{Merging with the adapters trained with seed 42. Max $|\Delta$logit$|$ = largest difference in any of the
+100 class scores between the merged and the unmerged model, on eight random inputs. Test accuracy on the 10,000
+test images with the adapters unmerged, merged, and after 100 cycles of merging and unmerging. Merge = time to merge
+all adapters on the GPU. Load adapter file = load and apply a stored adapter; load full model = load a complete
+stored model; both with the file already in memory (median of 5).}
+\label{tab:merge}
+\end{table}
+
+\begin{table}[H]
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{llccccc}
+\toprule
+configuration & variant & batch 1 & batch 8 & batch 32 & batch 64 & batch 128 \\
+\midrule
+\multicolumn{7}{l}{\emph{ViT-B}} \\
+Full FT & dense & 159 & 270 & 306 & 305 & 311 \\
+Attn & unmerged & 134 & 255 & 291 & 290 & 297 \\
+ & merged & 159 & 270 & 306 & 305 & 311 \\
+MLP & unmerged & 137 & 249 & 284 & 284 & 290 \\
+ & merged & 158 & 270 & 306 & 306 & 311 \\
+Attn+MLP & unmerged & 119 & 236 & 272 & 271 & 279 \\
+ & merged & 159 & 270 & 306 & 306 & 311 \\
+Attn, first half & unmerged & 145 & 262 & 298 & 298 & 304 \\
+ & merged & 159 & 270 & 306 & 305 & 310 \\
+Attn, even & unmerged & 145 & 262 & 298 & 298 & 304 \\
+ & merged & 158 & 270 & 306 & 305 & 311 \\
+Attn, odd & unmerged & 145 & 262 & 298 & 298 & 304 \\
+ & merged & 158 & 270 & 306 & 305 & 311 \\
+Attn, second half & unmerged & 145 & 262 & 298 & 298 & 304 \\
+ & merged & 159 & 270 & 306 & 305 & 311 \\
+\midrule
+\multicolumn{7}{l}{\emph{Swin-B}} \\
+Full FT & dense & 112 & 228 & 258 & 263 & 266 \\
+Attn & unmerged & 84 & 209 & 240 & 245 & 250 \\
+ & merged & 112 & 228 & 257 & 262 & 266 \\
+MLP & unmerged & 89 & 204 & 232 & 237 & 241 \\
+ & merged & 111 & 228 & 257 & 262 & 266 \\
+Attn+MLP & unmerged & 71 & 189 & 218 & 222 & 227 \\
+ & merged & 111 & 228 & 257 & 262 & 266 \\
+Attn, first half & unmerged & 95 & 217 & 246 & 251 & 256 \\
+ & merged & 112 & 228 & 257 & 263 & 266 \\
+Attn, even & unmerged & 98 & 218 & 249 & 254 & 258 \\
+ & merged & 112 & 228 & 257 & 263 & 266 \\
+Attn, odd & unmerged & 97 & 218 & 249 & 254 & 258 \\
+ & merged & 111 & 228 & 257 & 263 & 266 \\
+Attn, second half & unmerged & 96 & 220 & 251 & 256 & 260 \\
+ & merged & 112 & 228 & 257 & 262 & 266 \\
+\bottomrule
+\end{tabular}
+\caption{Throughput (test images classified per second) at different batch sizes, with the adapters trained with
+seed 42: copy to the GPU, forward pass and choice of class, with the images prepared beforehand. Mean over three
+processes.}
+\label{tab:throughput}
+\end{table}
+
+\begin{table}[H]
+\centering\footnotesize
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lccccc}
+\toprule
+unmerged configuration & \shortstack{end to end\\p50} & \shortstack{forward} & \shortstack{forward,\\CUDA graph} & \shortstack{throughput\\at batch 64} & \shortstack{CPU\\forward} \\
+\midrule
+\multicolumn{6}{l}{\emph{ViT-B}} \\
+Attn & +16\% & +18\% & +14\% & $-$5\% & +7\% \\
+MLP & +14\% & +16\% & +12\% & $-$7\% & +8\% \\
+Attn+MLP & +30\% & +33\% & +26\% & $-$11\% & +15\% \\
+Attn, first half & +8\% & +9\% & +7\% & $-$3\% & +1\% \\
+Attn, even & +9\% & +9\% & +7\% & $-$3\% & +2\% \\
+Attn, odd & +8\% & +9\% & +7\% & $-$3\% & +4\% \\
+Attn, second half & +8\% & +9\% & +7\% & $-$3\% & +2\% \\
+\midrule
+\multicolumn{6}{l}{\emph{Swin-B}} \\
+Attn & +31\% & +34\% & +18\% & $-$7\% & +11\% \\
+MLP & +25\% & +27\% & +17\% & $-$10\% & +13\% \\
+Attn+MLP & +55\% & +60\% & +35\% & $-$15\% & +24\% \\
+Attn, first half & +17\% & +19\% & +9\% & $-$4\% & +4\% \\
+Attn, even & +14\% & +15\% & +9\% & $-$3\% & +6\% \\
+Attn, odd & +14\% & +16\% & +9\% & $-$3\% & +4\% \\
+Attn, second half & +16\% & +17\% & +9\% & $-$3\% & +4\% \\
+\bottomrule
+\end{tabular}
+\caption{How much slower each LoRA configuration is with its adapters unmerged, relative to the dense model of the
+same architecture, computed from the unrounded measurements. All columns are for one image at a time except
+throughput, where $-$7\% means 7\% fewer images per second at batch size 64. Merged models are within 2\% of the
+dense model in every column.}
+\label{tab:penalty}
+\end{table}

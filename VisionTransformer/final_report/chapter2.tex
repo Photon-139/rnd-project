@@ -1,0 +1,154 @@
+\chapter{Background and Related Work}
+\label{ch:background}
+
+\section{Vision transformers}
+
+\paragraph{ViT.} The vision transformer (ViT)~\cite{dosovitskiy2021vit} applies the encoder of the
+transformer~\cite{vaswani2017attention} to images. An image of $224\times224$ pixels is cut into patches of $16\times16$ pixels. Each patch
+is mapped to a vector (a \emph{token}), and a class token is added, which gives 197 tokens. The tokens pass through a
+sequence of identical \emph{blocks}. Each block has two parts, each preceded by a layer normalisation and wrapped in
+a residual connection:
+\begin{itemize}
+  \item \emph{self-attention}: three weight matrices (the \emph{query}, \emph{key} and \emph{value} projections) map
+        every token to a query, a key and a value; every query is compared with every key, and the values are mixed
+        accordingly; a fourth matrix (the output projection) follows;
+  \item \emph{the MLP}: two linear layers with a GELU non-linearity between them. The first layer (fc1) widens the
+        token to four times its width, the second (fc2) brings it back.
+\end{itemize}
+ViT-B/16, the model used here, has 12 blocks of width 768 and about 86 million weights. ViT-L has 24 blocks of
+width 1024. DeiT-B~\cite{touvron2021deit} has exactly the architecture of ViT-B but was pretrained differently (on
+ImageNet-1k only, with a stronger training recipe).
+
+\paragraph{Swin.} The Swin transformer~\cite{liu2021swin} is hierarchical. Swin-B starts from $4\times4$ patches,
+i.e.\ $56\times56 = 3136$ tokens of width 128, and works in four \emph{stages}. Between stages, neighbouring tokens
+are merged: the number of tokens falls by a factor of four and the width doubles. Attention is computed only within
+local $7\times7$ windows, which are shifted in every second block. Swin-B has 24 blocks in stages of 2, 2, 18 and 2
+blocks (Table~\ref{tab:swin_stages}) and about 87 million weights. In this report its blocks are numbered 0 to 23
+across the stages.
+
+\begin{table}[H]
+\centering\small
+\begin{tabular}{lcccc}
+\toprule
+stage & blocks & tokens & width & block input per image (MiB) \\
+\midrule
+1 & 0--1 & $56\times56 = 3136$ & 128 & 1.53 \\
+2 & 2--3 & $28\times28 = 784$ & 256 & 0.77 \\
+3 & 4--21 & $14\times14 = 196$ & 512 & 0.38 \\
+4 & 22--23 & $7\times7 = 49$ & 1024 & 0.19 \\
+\midrule
+ViT-B, all blocks & 0--11 & 197 & 768 & 0.58 \\
+\bottomrule
+\end{tabular}
+\caption{The four stages of Swin-B, with ViT-B for comparison. Block input per image = tokens $\times$ width
+$\times$ 4 bytes: the size of the tensor that enters a block, for one image in 32-bit floating point. The first
+blocks of Swin-B work on the largest tensors.}
+\label{tab:swin_stages}
+\end{table}
+
+\section{Low-rank adaptation}
+
+LoRA~\cite{hu2022lora} adapts a linear layer with weight matrix $W \in \mathbb{R}^{d_\text{out}\times d_\text{in}}$
+without changing $W$. It adds two small matrices, $A \in \mathbb{R}^{r\times d_\text{in}}$ and
+$B \in \mathbb{R}^{d_\text{out}\times r}$, where the \emph{rank} $r$ is much smaller than the dimensions of $W$:
+\begin{equation}
+  y = Wx + \frac{\alpha}{r}\,B A x .
+  \label{eq:lora}
+\end{equation}
+Only $A$ and $B$ (together the \emph{adapter}) are trained. $B$ starts at zero, so training starts from the
+pretrained model exactly; $\alpha$ is a fixed scaling factor. With $r=8$ and width 768, an adapter has
+$2 \times 8 \times 768 = 12{,}288$ values against 589,824 in $W$. Figure~\ref{fig:lora} shows the arrangement.
+
+\begin{figure}[H]
+\centering
+\input{figures_static/lora}
+\caption{A LoRA adapter on one linear layer. The pretrained weight $W$ is frozen; the low-rank path through $A$ and
+$B$ is trained. After training, the product $\frac{\alpha}{r}BA$ can be added into $W$ (merging), which removes
+the extra path.}
+\label{fig:lora}
+\end{figure}
+
+\paragraph{Merging.} Because Equation~\ref{eq:lora} is linear in $x$, the adapter can be folded into the weight
+after training: $W' = W + \frac{\alpha}{r}BA$. The merged layer is an ordinary linear layer, and the merged model
+has the same structure and number of weights as the original one. We call a model without adapters, which is also
+the form of a fully fine-tuned model, a \emph{dense} model. Subtracting the product again restores $W$
+(\emph{unmerging}).
+
+\paragraph{Where adapters can be placed.} Any linear layer can receive an adapter. In a transformer block the
+natural choices are the attention projections and the two MLP layers; we call these the \emph{targets}. A second
+choice is the set of blocks that receive adapters, which we call the \emph{placement}.
+
+\section{What uses memory during training}
+\label{sec:bg_memory}
+
+The results of Chapters~\ref{ch:lora_ft} and~\ref{ch:placement} follow from one fact about backpropagation, so we
+state it here. The memory needed for one training step has two parts.
+\begin{itemize}
+  \item \emph{Static memory}: the weights, one gradient per trainable weight, and the state of the optimiser (AdamW
+        \cite{loshchilov2019adamw} keeps two more values per trainable weight). It does not depend on the batch.
+        Full fine-tuning of an 86-million-weight model needs four values per weight (1.28~GiB); LoRA needs the
+        weights once plus a few megabytes (0.33~GiB).
+  \item \emph{Activation memory}: intermediate results of the forward pass that the backward pass will need. It
+        grows in proportion to the batch size and, at the batch sizes used for training, it is by far the larger
+        part: about 6.9 of the 8.2~GiB of full fine-tuning of ViT-B at batch size 64.
+\end{itemize}
+That stored activations, not weights, dominate the memory of training is the central observation of
+TinyTL~\cite{cai2020tinytl}, and it has been made for parameter-efficient methods as well~\cite{sung2022lst}.
+
+What has to be stored depends on the operation. Let $x$ be the input of an operation, $y$ its output and
+$\delta_y$ the gradient of the loss with respect to $y$, which arrives from the later layers.
+\begin{itemize}
+  \item A \emph{frozen linear layer} $y = Wx$ passes the gradient back as $\delta_x = W^\top \delta_y$. This needs only
+        $W$. The input $x$ would be needed only for the gradient of $W$ itself, which is not computed. A frozen
+        linear layer therefore stores nothing.
+  \item A \emph{trainable layer}, such as a LoRA adapter, needs its input: the gradient of $A$ in
+        Equation~\ref{eq:lora} is proportional to $(B^\top\delta_y)\,x^\top$. An adapter therefore forces the input
+        of its layer to be stored.
+  \item \emph{Layer normalisation, attention and GELU} are not multiplications by a fixed matrix. To pass a gradient
+        back through them their inputs (and for attention also the output) must be stored, whether or not anything
+        in them is trained.
+  \item \emph{Blocks before the first trainable weight} are not part of the backward pass at all, and nothing in
+        them is stored.
+\end{itemize}
+Two consequences follow, and both are measured in this report. First, the memory that LoRA saves depends on
+\emph{which} layers have adapters: an adapter on fc2 forces the four-times-wider hidden layer of the MLP to be stored,
+an adapter on an attention projection only the normal-width input of the block. Second, freezing a block does not
+remove its cost as long as the backward pass still goes through it; the cost disappears only for blocks before the
+first adapter (Figure~\ref{fig:reach}). The number of trainable weights says little about training memory.
+
+\begin{figure}[H]
+\centering
+\input{figures_static/reach}
+\caption{Attention LoRA on blocks 3--11 of a 12-block model. The forward pass runs through all blocks. The backward
+pass stops at the first adapted block, so only blocks 3--11 keep their intermediate results; blocks 0--2 store
+nothing.}
+\label{fig:reach}
+\end{figure}
+
+\section{Related work}
+\label{sec:related}
+
+\paragraph{Parameter-efficient fine-tuning.} LoRA belongs to a family of methods that train a small number of
+weights and keep the rest frozen. Most of this literature reports the number of trained parameters and the
+accuracy. The number of trained parameters is not a measure of training memory, as Section~\ref{sec:bg_memory}
+explains; Ladder Side-Tuning~\cite{sung2022lst} makes this point and avoids backpropagation through the backbone
+altogether. Methods that decide how much adaptation each layer of a model receives usually work under a budget of
+\emph{parameters}, which in our measurements has almost no influence on training memory.
+
+\paragraph{Which layers to adapt.} Surgical fine-tuning~\cite{lee2023surgical} shows that the best subset of layers
+to train depends on how the new data differs from the pretraining data: early layers for changes at the level of
+the input, later layers for changes at the level of the output. Our placement results
+(Chapter~\ref{ch:placement}) agree with this for upsampled CIFAR-100 images: adapters on the later blocks alone
+are not enough.
+
+\paragraph{Training under a memory limit.} Work on on-device training chooses which layers to update so that
+training fits a memory limit; MCUNetV3~\cite{lin2022mcunetv3} does this for microcontrollers, with a memory model
+that is checked against measurements. This line of work targets convolutional networks and selects layers to
+update, not LoRA placements in a vision transformer. Processing a batch in pieces and accumulating the gradients,
+and storing fewer intermediate results and recomputing the others (gradient checkpointing), also lower the memory
+of training and are complementary to the choice of placement.
+
+\paragraph{Position of this work.} We did not find, in the literature we surveyed, a measurement of LoRA against
+full fine-tuning for vision transformers that covers accuracy, training memory and time, placement and prediction
+latency together on more than one architecture, nor a study of LoRA placement under a limit on \emph{training
+memory}. The survey was not exhaustive, so this is a statement about what we found, not a claim of novelty.
