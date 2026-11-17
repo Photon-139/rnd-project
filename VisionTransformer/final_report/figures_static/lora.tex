@@ -8,7 +8,8 @@
   \node (y) at (7.8,0) {$y$};
   \draw[->] (x) |- (W);
   \draw[->] (x) |- (A);
-  \draw[->] (A) -- node[above, font=\scriptsize] {rank $r$} (B);
+  \draw[->] (A) -- (B);
+  \node[font=\scriptsize] at (3.3,-0.22) {rank $r$};
   \draw[->] (W) -| (p);
   \draw[->] (B) -| node[pos=0.25, below, font=\scriptsize] {$\times\,\alpha/r$} (p);
   \draw[->] (p) -- (y);
