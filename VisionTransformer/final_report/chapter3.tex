@@ -44,7 +44,9 @@ Multi-Instance GPU mechanism divides into partitions; the other partitions were 
 time. The software is PyTorch~2.11.0~\cite{paszke2019pytorch} (CUDA~12.8, Python~3.12.3) with the HuggingFace
 Transformers~5.16.1 and PEFT~0.20.0~\cite{mangrulkar2022peft} libraries, the same versions for every run. Every ViT-B LoRA configuration of Chapters~\ref{ch:lora_ft} and~\ref{ch:placement} was also trained with our own
 implementation of the model and of LoRA, from identical initial weights; the two implementations agree closely
-(Appendix~\ref{app:impl}), and the tables give the library results.
+(Appendix~\ref{app:impl}), and the tables give the library results. The code, the result files of every run and
+the scripts that compute every number in this report are available at
+\url{https://github.com/Photon-139/rnd-project}.
 
 \section{Metrics}
 \label{sec:metrics}
