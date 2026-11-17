@@ -8,7 +8,7 @@ placed, and what does it change when the model is deployed.
 
 With the learning rate of each method chosen on validation loss, LoRA at rank 8 is more accurate than full
 fine-tuning on Swin-B (by 0.4--0.5 percentage points for each of three choices of adapted layers). On ViT-B it is
-within about 0.2 points of full fine-tuning and never ahead. Its saving in training memory depends on which layers are adapted,
+within about 0.2 points of full fine-tuning, with no evidence that it is better. Its saving in training memory depends on which layers are adapted,
 in the same way on both models: about a third for the attention projections, a seventh for the MLP layers and about 6\%
 for both, at batch size 64. The saving grows as the batch shrinks, to about 70\% at batch size 1. Training epochs
 are 12--26\% shorter. Within LoRA, the training memory is set mainly by the first block that has an adapter, because

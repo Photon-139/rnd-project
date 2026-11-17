@@ -8,8 +8,8 @@ and with five seeds.
 
 \begin{enumerate}
   \item \textbf{Accuracy.} With the learning rate of each method chosen on validation loss, LoRA at rank 8 is more
-        accurate than full fine-tuning on Swin-B (0.4--0.5~pp for each of the three targets). On ViT-B it is never
-        ahead: MLP and Attn+MLP show no detectable difference, and attention LoRA is about 0.2~pp below. The comparison is sensitive to the tuning of full fine-tuning: a
+        accurate than full fine-tuning on Swin-B (0.4--0.5~pp for each of the three targets). On ViT-B there is no
+        evidence that it is better: MLP and Attn+MLP are level with it, and attention LoRA is about 0.2~pp below. The comparison is sensitive to the tuning of full fine-tuning: a
         rate three times too small costs it 0.6~pp on ViT-B, enough to make LoRA look clearly better. Rank 16 gives
         no gain on ViT-B, and no target is reliably the most accurate.
   \item \textbf{Training cost.} The saving in training memory is decided by which layers are adapted, not by how
@@ -19,7 +19,7 @@ and with five seeds.
   \item \textbf{Placement.} Training memory is set mainly by the first adapted block; additional adapters after it
         are cheap. Adapting only the second half of the blocks saves the most memory but loses 1.2--1.6~pp and falls
         below full fine-tuning on both models. Adapting only the odd blocks, which skips the first block, saves 11--14\% of the memory with
-        no detectable loss against all blocks on Swin-B; on ViT-B a small loss cannot be excluded.
+        accuracy level with all blocks on Swin-B; on ViT-B a small loss cannot be excluded.
   \item \textbf{Deployment.} For a single task, a merged LoRA model is indistinguishable from a fully fine-tuned
         one in predictions, memory and speed, so LoRA does not make inference cheaper. Unmerged adapters let
         several tasks share one base model at 2--6~MiB per task (adapters on all blocks), at the price of slower predictions (8--55\% for

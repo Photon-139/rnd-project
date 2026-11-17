@@ -17,7 +17,8 @@ a residual connection:
 \end{itemize}
 ViT-B/16, the model used here, has 12 blocks of width 768 and about 86 million weights. ViT-L has 24 blocks of
 width 1024. DeiT-B~\cite{touvron2021deit} has exactly the architecture of ViT-B but was pretrained differently (on
-ImageNet-1k only, with a stronger training recipe).
+ImageNet-1k only, with a stronger training recipe). The DeiT paper also introduces a variant with an additional
+distillation token; the checkpoint we use is the one without it, so its inputs and blocks are those of ViT-B.
 
 \paragraph{Swin.} The Swin transformer~\cite{liu2021swin} is hierarchical. Swin-B starts from $4\times4$ patches,
 i.e.\ $56\times56 = 3136$ tokens of width 128, and works in four \emph{stages}. Between stages, neighbouring tokens
@@ -93,7 +94,7 @@ state it here. The memory needed for one training step has two parts.
         part: about 6.9 of the 8.2~GiB of full fine-tuning of ViT-B at batch size 64.
 \end{itemize}
 That stored activations, not weights, dominate the memory of training is the central observation of
-TinyTL~\cite{cai2020tinytl}, and it has been made for parameter-efficient methods as well~\cite{sung2022lst}.
+TinyTL~\cite{cai2020tinytl}, which made it for convolutional networks.
 
 What has to be stored depends on the operation. Let $x$ be the input of an operation, $y$ its output and
 $\delta_y$ the gradient of the loss with respect to $y$, which arrives from the later layers.
@@ -128,27 +129,11 @@ nothing.}
 \section{Related work}
 \label{sec:related}
 
-\paragraph{Parameter-efficient fine-tuning.} LoRA belongs to a family of methods that train a small number of
-weights and keep the rest frozen. Most of this literature reports the number of trained parameters and the
-accuracy. The number of trained parameters is not a measure of training memory, as Section~\ref{sec:bg_memory}
-explains; Ladder Side-Tuning~\cite{sung2022lst} makes this point and avoids backpropagation through the backbone
-altogether. Methods that decide how much adaptation each layer of a model receives usually work under a budget of
-\emph{parameters}, which in our measurements has almost no influence on training memory.
-
-\paragraph{Which layers to adapt.} Surgical fine-tuning~\cite{lee2023surgical} shows that the best subset of layers
-to train depends on how the new data differs from the pretraining data: early layers for changes at the level of
-the input, later layers for changes at the level of the output. Our placement results
-(Chapter~\ref{ch:placement}) agree with this for upsampled CIFAR-100 images: adapters on the later blocks alone
-are not enough.
-
-\paragraph{Training under a memory limit.} Work on on-device training chooses which layers to update so that
-training fits a memory limit; MCUNetV3~\cite{lin2022mcunetv3} does this for microcontrollers, with a memory model
-that is checked against measurements. This line of work targets convolutional networks and selects layers to
-update, not LoRA placements in a vision transformer. Processing a batch in pieces and accumulating the gradients,
-and storing fewer intermediate results and recomputing the others (gradient checkpointing), also lower the memory
-of training and are complementary to the choice of placement.
-
-\paragraph{Position of this work.} We did not find, in the literature we surveyed, a measurement of LoRA against
-full fine-tuning for vision transformers that covers accuracy, training memory and time, placement and prediction
-latency together on more than one architecture, nor a study of LoRA placement under a limit on \emph{training
-memory}. The survey was not exhaustive, so this is a statement about what we found, not a claim of novelty.
+This report is a measurement study, and we did not carry out a survey of the literature. Three works are directly
+connected to it. LoRA~\cite{hu2022lora} is the method we study; it was proposed for language models, and we use its
+implementation in the PEFT library~\cite{mangrulkar2022peft}. TinyTL~\cite{cai2020tinytl} observed, for
+convolutional networks, that the memory of training is dominated by the stored activations and not by the number of
+trained parameters; Chapters~\ref{ch:lora_ft} and~\ref{ch:placement} measure the same effect for LoRA in vision
+transformers. Surgical fine-tuning~\cite{lee2023surgical} found that which layers are best to train depends on how
+the new data differs from the pretraining data, which is related to our placement results
+(Chapter~\ref{ch:placement}). We make no claim that the measurements reported here are new.

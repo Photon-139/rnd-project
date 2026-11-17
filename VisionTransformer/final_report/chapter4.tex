@@ -82,14 +82,13 @@ Appendix~\ref{app:seeds}.}
 \end{figure}
 
 \paragraph{Swin-B: LoRA is more accurate.} All three LoRA configurations are above full fine-tuning, by
-0.43--0.48~pp, in 5, 5 and 4 of the 5 seeds (Table~\ref{tab:acc}, Figure~\ref{fig:acc_seeds}). All three
-differences are detectable. In the learning-rate check, attention LoRA is above full fine-tuning at its best rate in
+0.43--0.48~pp, in 5, 5 and 4 of the 5 seeds (Table~\ref{tab:acc}, Figure~\ref{fig:acc_seeds}). In the learning-rate check, attention LoRA is above full fine-tuning at its best rate in
 all three seeds, at both of its tied rates: by 0.50 $\pm$ 0.16~pp at $10^{-4}$ and by 0.35 $\pm$ 0.27~pp at
 $3\times10^{-5}$.
 
-\paragraph{ViT-B: LoRA is level with or slightly below full fine-tuning, and never ahead.} MLP and Attn+MLP do not differ detectably from
-full fine-tuning ($+$0.04 $\pm$ 0.22 and $+$0.12 $\pm$ 0.21~pp). Attention LoRA is 0.21 $\pm$ 0.13~pp \emph{below}
-it, in all five seeds, which is a detectable difference. Two further measurements show how far this difference can
+\paragraph{ViT-B: LoRA is level with or slightly below full fine-tuning, with no evidence that it is better.} MLP and Attn+MLP are level with full
+fine-tuning ($+$0.04 $\pm$ 0.22 and $+$0.12 $\pm$ 0.21~pp, within the spread over seeds). Attention LoRA is 0.21 $\pm$ 0.13~pp \emph{below}
+it, in all five seeds. Two further measurements show how far this difference can
 be trusted:
 \begin{itemize}
   \item At the rate $3\times10^{-4}$, which has the same validation loss as $10^{-4}$, attention LoRA is level with
@@ -101,8 +100,8 @@ be trusted:
         settings and seeds can thus differ by about as much as the difference in question
         (Appendix~\ref{app:impl}).
 \end{itemize}
-We conclude that on ViT-B, LoRA is within about 0.2~pp of full fine-tuning: MLP and Attn+MLP show no detectable
-difference, attention LoRA is at most 0.2~pp below, and there is no evidence that any of them is better.
+We conclude that on ViT-B, LoRA is within about 0.2~pp of full fine-tuning: MLP and Attn+MLP are within the spread
+over seeds, attention LoRA is at most 0.2~pp below, and there is no evidence that any of them is better.
 
 \paragraph{Validation loss.} LoRA has the lower validation loss than full fine-tuning in all 30 seed pairs, by about
 0.03 on ViT-B and 0.02 on Swin-B. On Swin-B this agrees with the test accuracy. On ViT-B it does not turn into
@@ -118,8 +117,8 @@ why LoRA, which trains less than 2\% of the weights, loses nothing on Swin-B.
 \section{Targets and rank}
 \label{sec:targets}
 
-\paragraph{Targets.} On Swin-B no difference between the three targets is detectable (paired differences between
-$-$0.05 and $+$0.01~pp). On ViT-B at learning rate $10^{-4}$, MLP and Attn+MLP are more accurate than attention
+\paragraph{Targets.} On Swin-B the paired differences between the three targets lie between $-$0.05 and
+$+$0.01~pp, well within the spread over seeds. On ViT-B at learning rate $10^{-4}$, MLP and Attn+MLP are more accurate than attention
 alone, by 0.25 $\pm$ 0.16 and 0.33 $\pm$ 0.16~pp, in every seed. This ranking holds at that rate only: the rate was
 varied for attention alone, and at $3\times10^{-4}$ attention LoRA is level with the other two at $10^{-4}$
 ($+$0.13 $\pm$ 0.24~pp against MLP, $-$0.07 $\pm$ 0.24~pp against Attn+MLP; 3 seeds). We therefore do not conclude
@@ -130,8 +129,8 @@ that one target is more accurate than another. What differs clearly between the 
 \label{sec:rank}
 ViT-B was also trained with rank 16 for all three targets, with five seeds, in an earlier set of runs that includes
 its own rank-8 runs. Rank 16 gives no gain: the paired differences to rank 8 are $-$0.15 $\pm$ 0.12~pp (attention),
-$-$0.02 $\pm$ 0.13~pp (MLP) and $+$0.05 $\pm$ 0.12~pp (Attn+MLP). For attention, rank 16 is detectably lower in the
-library implementation (in all five seeds), but our own implementation shows no such effect ($+$0.02 $\pm$ 0.04~pp). Peak memory rises by less than 0.04~GiB
+$-$0.02 $\pm$ 0.13~pp (MLP) and $+$0.05 $\pm$ 0.12~pp (Attn+MLP). For attention, rank 16 is lower in all five seeds
+in the library implementation, but our own implementation shows no such effect ($+$0.02 $\pm$ 0.04~pp). Peak memory rises by less than 0.04~GiB
 (Table~\ref{tab:rank} in the appendix). Rank 16 was not run on Swin-B.
 
 \section{Training memory}
@@ -167,7 +166,11 @@ appendix). At batch size 1 every LoRA target needs 66--74\% less memory than ful
 memory, which LoRA cuts to a quarter, is then the larger part. As the batch grows, activation memory takes over and
 the saving falls towards the share of the activations that the target avoids: at batch size 128 it is 31\% for
 attention on both models, 11--13\% for MLP and 3--4\% for Attn+MLP. Small batches are where memory-limited devices
-operate, so this is the favourable case for LoRA.
+operate, so this is the favourable case for LoRA. At the smallest batches the peak of full fine-tuning hardly
+changes (ViT-B: 1.62, 1.62 and 1.63~GiB at batch sizes 1, 2 and 4), because it occurs during the optimiser step,
+when the gradients and the temporary memory of the update come on top of the stored weights and optimiser state;
+from batch size 8 on ViT-B and 4 on Swin-B it occurs during the backward pass instead. The saving therefore falls
+quickly between batch sizes 1 and 8: for attention LoRA on ViT-B from 74\% to 68\%, 59\% and 48\%.
 
 \section{Training time}
 \label{sec:time}

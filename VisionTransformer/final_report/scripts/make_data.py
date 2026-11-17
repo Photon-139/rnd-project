@@ -132,10 +132,24 @@ S["sweep"] = {"vitb": {"ft": sweep("results_profile", "baseline"), "attn": sweep
                        "first": sweep("results_v2_profile", "lora_attn_r8_L0-5"), "even": sweep("results_v2_profile", "lora_attn_r8_L0_2_4_6_8_10"),
                        "odd": sweep("results_v2_profile", "lora_attn_r8_L1_3_5_7_9_11"), "second": sweep("results_v2_profile", "lora_attn_r8_L6-11")},
               "swinb": {"ft": sweep("results_profile", "swinb_baseline_lr1e-4"), **{k: sweep("results_profile", W[k]) for k in W if k != "ft"}}}
+# batch sizes 2 and 4 (job 14887, 2026-11-17), merged into the sweeps above; batch 1 and 8 there were re-measured
+# by that job and agreed within 0.0003 GiB
+BS_EXTRA = {"vitb": {"ft": "baseline", "attn": "lora_attn_r8", "mlp": "lora_mlp_r8", "both": "lora_attn_mlp_r8"},
+            "swinb": {"ft": "swinb_baseline_lr1e-4", "attn": "swinb_lora_attn_r8", "mlp": "swinb_lora_mlp_r8",
+                      "both": "swinb_lora_attn_mlp_r8"}}
+for m, d in BS_EXTRA.items():
+    for k, e in d.items():
+        extra = sweep("results_mem_profile_bs", e)
+        for bs in ("1", "8"):
+            assert abs(extra[bs] - S["sweep"][m][k][bs]) < 0.005, (m, k, bs)
+        S["sweep"][m][k].update({"2": extra["2"], "4": extra["4"]})
 S["infer"] = {"vitb": {"ft": infer("results_profile", "baseline"), **{k: infer(V[k][0] + "_profile", V[k][1]) for k in V if k != "ft"}},
               "swinb": {"ft": infer("results_profile", "swinb_baseline_lr1e-4"), **{k: infer("results_profile", W[k]) for k in W if k != "ft"}}}
 S["memsweep"] = {os.path.basename(d): sweep("results_mem_profile", os.path.basename(d))
                  for d in sorted(glob.glob(os.path.join(ROOT, "results_mem_profile", "*")))}
+# ViT-B at every first adapted block k (job 14887)
+S["memsweep_vitb"] = {os.path.basename(d): sweep("results_mem_profile_vitb", os.path.basename(d))
+                      for d in sorted(glob.glob(os.path.join(ROOT, "results_mem_profile_vitb", "*")))}
 
 # memory-budget study training runs (3 seeds)
 D = {"deit_all": "deitb_lora_attn_r8", "deit_3": "deitb_lora_attn_r8_L3-11", "deit_6": "deitb_lora_attn_r8_L6-11",

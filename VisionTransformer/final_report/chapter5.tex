@@ -30,25 +30,22 @@ Table~\ref{tab:time}.}
 \paragraph{Adapting only the second half costs accuracy on both models.} The second half is 1.56 $\pm$ 0.15~pp
 below all blocks on ViT-B and 1.18 $\pm$ 0.19~pp below on Swin-B, in every seed. On both models it also falls below
 full fine-tuning (by 1.77 and 0.70~pp, in every seed), and its validation loss is the highest of all placements. In
-this setting adapters on the later half alone are not enough. This is the opposite of the usual practice when only
-part of a pretrained model is trained, which is to train the last layers (in the extreme case only the classifier),
-on the view that early layers compute general features and later layers features specific to the task; Lee et
-al.~\cite{lee2023surgical} describe this as the common approach. A possible explanation, which we have not tested, is that CIFAR-100 images
+this setting adapters on the later half alone are not enough. A possible explanation, which we have not tested, is that CIFAR-100 images
 upsampled from $32\times32$ differ from ImageNet images mainly in their fine structure, which the early blocks
-process; this would agree with their observation that the early layers are the ones to train when it is the
-input that changes. The two ``second halves'' are not the same thing structurally (blocks 12--23 of
+process; this would agree with the observation of surgical fine-tuning~\cite{lee2023surgical} that the early
+layers are the ones to train when it is the input that changes. The two ``second halves'' are not the same thing structurally (blocks 12--23 of
 Swin-B are the last ten blocks of its third stage and its fourth stage), and the size of the loss depends on the
 model (Chapter~\ref{ch:budget}).
 
 \paragraph{The best of the other placements differs between the models.} On ViT-B the first half is the most
 accurate placement, 0.21 $\pm$ 0.06~pp above all blocks in every seed. On Swin-B it is 0.38 $\pm$ 0.20~pp
-\emph{below} all blocks in every seed. Both differences are detectable. We have not tested the cause; the first
+\emph{below} all blocks in every seed. We have not tested the cause; the first
 half of Swin-B has the fewest adapter parameters of the four placements and no adapters in the fourth stage.
 
-\paragraph{Interleaved placements lose little or nothing against all blocks.} Neither the even nor the odd blocks
-differ detectably from all blocks on either model. Even blocks: $-$0.06 $\pm$ 0.09~pp on ViT-B and $-$0.03 $\pm$
+\paragraph{Interleaved placements lose little or nothing against all blocks.} On both models the even and the odd
+blocks are within the spread over seeds of all blocks. Even blocks: $-$0.06 $\pm$ 0.09~pp on ViT-B and $-$0.03 $\pm$
 0.42~pp on Swin-B. Odd blocks: $-$0.22 $\pm$ 0.23~pp on ViT-B (lower in 4 of 5 seeds) and $+$0.08 $\pm$ 0.27~pp on
-Swin-B. No detectable difference is not the same as no difference: for the odd blocks on ViT-B the mean is negative
+Swin-B. This does not make them equivalent: for the odd blocks on ViT-B the mean is negative
 and the validation loss is slightly worse in all five seeds, so a small loss cannot be excluded there. Against full
 fine-tuning, the interleaved placements stay 0.45--0.56~pp ahead on Swin-B and are 0.26--0.42~pp behind on ViT-B.
 
@@ -59,10 +56,9 @@ a different rate, so these differences hold for this setting.
 
 \begin{figure}[!htb]
 \centering
-\input{figures/mem_start}
+{\renewcommand{\figH}{0.27\textwidth}\input{figures/mem_start}}
 \caption{Peak training memory at batch size 64 against the first adapted block $k$, for attention LoRA on every
-block from $k$ to the last. Left: DeiT-B, which has the shape of ViT-B (profiler), and three ViT-B training runs.
-Right: Swin-B; the dotted lines mark the first block of stages 2, 3 and 4.}
+block from $k$ to the last. Left: ViT-B. Right: Swin-B; the dotted lines mark the first block of stages 2, 3 and 4.}
 \label{fig:mem_start}
 \end{figure}
 
@@ -71,11 +67,11 @@ adapters in different places, but both start at block 0, and their peak memory i
 blocks start at block 1 and need 0.362~GiB less (4.871~GiB). The second half starts at block 6 and needs exactly six
 times that amount less (3.061~GiB). This is the behaviour described in Section~\ref{sec:bg_memory}: the backward pass
 must reach the first adapter, every block from there on keeps its intermediate results, and the blocks before it
-keep nothing. Figure~\ref{fig:mem_start} shows the same rule when the first adapted block is moved one block at a
-time: the peak falls by the same amount at every step on ViT-B and DeiT-B, and fastest in the first blocks of
-Swin-B, which work on its largest tensors (Table~\ref{tab:swin_stages}). On Swin-B, the even and the odd blocks
-adapt one block of every pair in every stage, so for memory they differ only in where they start (they also differ
-in the type of attention window, regular or shifted, which does not affect memory): starting at block 1 instead of
+keep nothing. Figure~\ref{fig:mem_start} shows the same rule when the first adapted block is moved further: on
+ViT-B the peak falls by the same 0.40~GiB with every block (DeiT-B, which has the same shape, gives identical
+values). Swin-B loses memory fastest in its first blocks, which work on its largest
+tensors (Table~\ref{tab:swin_stages}). On Swin-B, the even and the odd blocks
+adapt one block of every pair in every stage, so for memory they differ only in where they start: starting at block 1 instead of
 block 0 saves 0.98~GiB.
 
 The odd blocks and the second half of ViT-B have the same number of trainable parameters (298,084) and differ by
@@ -84,8 +80,7 @@ The odd blocks and the second half of ViT-B have the same number of trainable pa
 \paragraph{Additional adapted blocks are cheap.} Once the first adapted block is fixed, adapting more blocks after
 it adds little, because those blocks store their intermediate results anyway. On ViT-B, adapting all twelve blocks
 needs 0.226~GiB more than adapting the first six: about 0.04~GiB per additional block, a tenth of the 0.36~GiB that
-starting one block earlier costs (0.40~GiB when the earlier block also receives an adapter, as in
-Figure~\ref{fig:mem_start}).
+starting one block earlier costs.
 
 \paragraph{The backward pass follows the same rule.} It takes about half as long when it stops in the middle of the
 model (116 against 237~ms per batch on ViT-B, 117 against 271~ms on Swin-B), while the forward pass, which always
@@ -96,9 +91,9 @@ runs through the whole model, hardly changes. The shorter training epochs of the
 
 \begin{figure}[!htb]
 \centering
-\input{figures/placement}
-\caption{Test accuracy against peak training memory at batch size 64 for attention LoRA on all blocks and on the
-four placements, and for full fine-tuning.}
+{\renewcommand{\figH}{0.27\textwidth}\input{figures/placement}}
+\caption{Test accuracy of attention LoRA on the four placements and on all blocks, and of full fine-tuning. The
+configurations are ordered by their peak training memory at batch size 64, given under each name.}
 \label{fig:placement}
 \end{figure}
 
@@ -107,8 +102,8 @@ Figure~\ref{fig:placement} puts accuracy and memory together.
   \item \textbf{Second half.} It saves the most memory: 44\% against all blocks on ViT-B and 61\% on Swin-B. But it
         costs 1.2--1.6~pp and ends below full fine-tuning on both models.
   \item \textbf{Odd blocks.} Leaving out block 0 saves 11\% of the memory of all-blocks LoRA on ViT-B and 14\% on
-        Swin-B (40\% and 42\% against full fine-tuning) and shortens the training epoch by 8\%, with no detectable
-        loss of accuracy against all blocks on Swin-B; on ViT-B a small loss cannot be excluded. Most of the saving
+        Swin-B (40\% and 42\% against full fine-tuning) and shortens the training epoch by 8\%, with no clear
+        loss of accuracy against all blocks on Swin-B ($+$0.08 $\pm$ 0.27~pp); on ViT-B a small loss cannot be excluded. Most of the saving
         (60\% and 70\% of it) comes from not reaching block 0, the rest from adapting half as many blocks.
   \item \textbf{Placements that start at block 0} need almost as much memory as all blocks. Which of them is the
         most accurate differs between the models: the first half on ViT-B, the interleaved blocks on Swin-B.

@@ -71,7 +71,7 @@ def lr_legend():
     return out
 
 
-b = group(2, "xmode=log, xmin=1.8e-6, xmax=1.7e-3, ymajorgrids, " + LR_LEG, rows=2, vsep="0.5cm")
+b = group(2, "xmode=log, xmin=1.8e-6, xmax=1.7e-3, xtick={3e-6,1e-5,3e-5,1e-4,3e-4,1e-3}, xticklabels={3e-6,1e-5,3e-5,1e-4,3e-4,1e-3}, x tick label style={font=\\scriptsize, rotate=45, anchor=north east, inner sep=1pt}, xminorticks=false, ymajorgrids, " + LR_LEG, rows=2, vsep="0.5cm")
 for row, (key, ylabel) in enumerate((("val", "val. loss ($\\downarrow$ better)"), ("acc", "test acc., \\% ($\\uparrow$ better)"))):
     for i, (m, title) in enumerate(MODELS):
         opts = [f"ylabel={{{ylabel}}}", "ylabel style={align=center}"] if i == 0 else []
@@ -81,7 +81,7 @@ for row, (key, ylabel) in enumerate((("val", "val. loss ($\\downarrow$ better)")
             b += lr_legend()
 write("lr_check", b + END)
 
-b = group(2, "xmode=log, xmin=1.8e-6, xmax=1.7e-3, ymajorgrids, xlabel={learning rate}, " + LR_LEG.replace("-0.3)", "-0.42)"))
+b = group(2, "xmode=log, xmin=1.8e-6, xmax=1.7e-3, xtick={3e-6,1e-5,3e-5,1e-4,3e-4,1e-3}, xticklabels={3e-6,1e-5,3e-5,1e-4,3e-4,1e-3}, x tick label style={font=\\scriptsize, rotate=45, anchor=north east, inner sep=1pt}, xminorticks=false, ymajorgrids, xlabel={learning rate}, " + LR_LEG.replace("-0.3)", "-0.42)"))
 for i, (m, title) in enumerate(MODELS):
     b += (f"\\nextgroupplot[title={{{title}}}" +
           (", ylabel={validation loss ($\\downarrow$ better)}, ylabel style={align=center}" if i == 0 else "") + "]\n")
@@ -104,8 +104,8 @@ for i, (m, title) in enumerate(MODELS):
 write("mem_targets", b + END)
 
 # ---- 4. memory saving against batch size (profiler) ---------------------------------------------------------------
-BS = ("1", "8", "16", "32", "64", "128")
-b = group(2, "xmode=log, log basis x=2, xtick={1,8,16,32,64,128}, xticklabels={1,8,16,32,64,128}, ymin=0, ymax=80, "
+BS = ("1", "2", "4", "8", "16", "32", "64", "128")
+b = group(2, "xmode=log, log basis x=2, xtick={1,2,4,8,16,32,64,128}, xticklabels={1,2,4,8,16,32,64,128}, ymin=0, ymax=80, "
              "ymajorgrids, legend style={font=\\footnotesize, draw=none, fill=none}, legend pos=north east")
 for i, (m, title) in enumerate(MODELS):
     b += f"\\nextgroupplot[title={{{title}}}, xlabel={{batch size}}" + (", ylabel={saving against full FT (\\%)}" if i == 0 else "") + "]\n"
@@ -131,28 +131,27 @@ for i, (m, title) in enumerate(MODELS):
             b += f"\\addlegendentry{{{lab}}}\n"
 write("time_batch", b + END)
 
-# ---- 6. placements: accuracy against peak training memory --------------------------------------------------------
-PL = (("attn", "all", "*", {"vitb": "west", "swinb": "west"}), ("first", "first half", "square*", {"vitb": "south west", "swinb": "north west"}),
-      ("even", "even", "triangle*", {"vitb": "east", "swinb": "north east"}), ("odd", "odd", "diamond*", {"vitb": "north", "swinb": "east"}),
-      ("second", "second half", "pentagon*", {"vitb": "west", "swinb": "west"}))
-b = group(2, "ymajorgrids, xmajorgrids, xlabel={peak training memory at batch 64 (GiB)}, "
-             "legend style={font=\\scriptsize, draw=none, fill=none, at={(-0.12,-0.3)}, anchor=north, legend columns=-1, "
+# ---- 6. placements: accuracy of each placement, ordered by peak training memory -----------------------------------
+PL = (("second", "2nd half"), ("odd", "odd"), ("even", "even"), ("first", "1st half"), ("attn", "all"))
+b = group(2, "ymajorgrids, xmin=0.4, xmax=6.6, xtick={1,2,3,4,5,6}, x tick label style={font=\\scriptsize, align=center}, "
+             "xlabel={under each name: peak training memory (GiB)}, xlabel style={font=\\footnotesize}, "
+             "legend style={font=\\scriptsize, draw=none, fill=none, at={(-0.12,-0.5)}, yshift=-10pt, anchor=north, legend columns=-1, "
              "/tikz/every even column/.append style={column sep=8pt}}")
 for i, (m, title) in enumerate(MODELS):
     ft = S[m]["ft"]
-    xmax = ft["peak"][0] * 1.08
-    b += (f"\\nextgroupplot[title={{{title}}}, xmin=2, xmax={xmax:.1f}" + (", ylabel={test accuracy (\\%)}" if i == 0 else "") + "]\n")
-    for k, lab, mark, anchor in PL:
-        s = S[m][k]
-        b += (f"\\addplot[cAttn, only marks, mark={mark}, mark size=2.2pt, forget plot, error bars/.cd, y dir=both, y explicit] "
-              f"coordinates {{({s['peak'][0]:.3f},{s['acc'][0]:.3f}) +- (0,{s['acc'][1]:.3f})}};\n")
-        b += f"\\node[font=\\scriptsize, anchor={anchor[m]}, inner sep=3pt] at (axis cs:{s['peak'][0]:.3f},{s['acc'][0]:.3f}) {{{lab}}};\n"
+    order = sorted(PL, key=lambda kl: (S[m][kl[0]]["peak"][0], kl[0] != "first"))
+    labs = ",".join(f"{{\\strut {lab}\\\\\\strut {S[m][k]['peak'][0]:.1f}}}" for k, lab in order) + f",{{\\strut full FT\\\\\\strut {ft['peak'][0]:.1f}}}"
+    b += (f"\\nextgroupplot[title={{{title}}}, xticklabels={{{labs}}}" + (", ylabel={test accuracy (\\%)}" if i == 0 else "") + "]\n")
+    b += f"\\draw[cFT, densely dashed] (axis cs:0.4,{ft['acc'][0]:.3f}) -- (axis cs:6.6,{ft['acc'][0]:.3f});\n"
+    pts = " ".join(f"({x},{S[m][k]['acc'][0]:.3f}) +- (0,{S[m][k]['acc'][1]:.3f})" for x, (k, _) in enumerate(order, 1))
+    b += (f"\\addplot[cAttn, only marks, mark=*, mark size=2.2pt, forget plot, error bars/.cd, y dir=both, y explicit] "
+          f"coordinates {{{pts}}};\n")
     b += (f"\\addplot[cFT, only marks, mark=square*, mark size=2.2pt, forget plot, error bars/.cd, y dir=both, y explicit] "
-          f"coordinates {{({ft['peak'][0]:.3f},{ft['acc'][0]:.3f}) +- (0,{ft['acc'][1]:.3f})}};\n")
-    b += f"\\node[font=\\scriptsize, anchor=south east, inner sep=4pt] at (axis cs:{ft['peak'][0]:.3f},{ft['acc'][0]:.3f}) {{full FT}};\n"
+          f"coordinates {{(6,{ft['acc'][0]:.3f}) +- (0,{ft['acc'][1]:.3f})}};\n")
     if i == 1:
         b += ("\\addlegendimage{cAttn, only marks, mark=*, mark size=2.2pt}\n\\addlegendentry{attention LoRA on the named blocks}\n"
               "\\addlegendimage{cFT, only marks, mark=square*, mark size=2.2pt}\n\\addlegendentry{full fine-tuning}\n"
+              "\\addlegendimage{cFT, densely dashed}\n\\addlegendentry{mean of full FT}\n"
               "\\addlegendimage{cGrey, mark=|, mark size=3pt}\n\\addlegendentry{$\\pm$ std, 5 seeds}\n")
 write("placement", b + END)
 
@@ -161,15 +160,14 @@ def k_of(name):
     mt = re.search(r"_L(\d+)-", name)
     return int(mt.group(1)) if mt else 0
 deit = sorted((k_of(n), v["64"]) for n, v in S["memsweep"].items() if n.startswith("deitb"))
+vitb = sorted((k_of(n), v["64"]) for n, v in S["memsweep_vitb"].items())
 swin = sorted([(k_of(n), v["64"]) for n, v in S["memsweep"].items() if n.startswith("swinb")] +
               [(0, S["swinb"]["attn"]["peak"][0]), (12, S["swinb"]["second"]["peak"][0])])
-vitb = [(0, S["vitb"]["attn"]["peak"][0]), (3, S["budget"]["vitb_3"]["peak"][0]), (6, S["vitb"]["second"]["peak"][0])]
 c = lambda pts: " ".join(f"({k},{v:.3f})" for k, v in pts)
 b = group(2, "ymin=0, ymajorgrids, xlabel={first adapted block $k$}, legend style={font=\\footnotesize, draw=none, fill=none, legend cell align=left}, "
              "legend pos=south west")
-b += "\\nextgroupplot[title={ViT-B and DeiT-B (12 blocks)}, ylabel={peak training memory (GiB)}, xtick={0,2,4,6,8,10}]\n"
-b += f"\\addplot[cAttn, thick, mark=*, mark size=1.8pt] coordinates {{{c(deit)}}};\n\\addlegendentry{{DeiT-B (profiler)}}\n"
-b += f"\\addplot[cAccent, only marks, mark=square, mark size=3pt, thick] coordinates {{{c(vitb)}}};\n\\addlegendentry{{ViT-B (training runs)}}\n"
+b += "\\nextgroupplot[title={ViT-B (12 blocks)}, ylabel={peak training memory (GiB)}, xtick={0,2,4,6,8,10}]\n"
+b += f"\\addplot[cAttn, thick, mark=*, mark size=1.8pt] coordinates {{{c(vitb)}}};\n"
 b += "\\nextgroupplot[title={Swin-B (24 blocks)}, xtick={0,2,4,8,12,16,22}]\n"
 b += f"\\addplot[cAttn, thick, mark=*, mark size=1.8pt] coordinates {{{c(swin)}}};\n"
 for x, lab in ((2, "stage 2"), (4, "stage 3"), (22, "stage 4")):
@@ -203,6 +201,33 @@ for i, (m, title) in enumerate(MODELS):
         b += "\\addlegendimage{black, densely dashed, thick, line legend}\n\\addlegendentry{dense}\n"
 write("latency", b + END)
 
+# ---- 8b. launch overhead: extra forward time of unmerged adapters, with and without one launch (CUDA graph) ------
+LCFG = (("Attn", "lora_attn_r8", "swinb_lora_attn_r8"), ("MLP", "lora_mlp_r8", "swinb_lora_mlp_r8"),
+        ("Attn+MLP", "lora_attn_mlp_r8", "swinb_lora_attn_mlp_r8"))
+b = group(2, "ybar stacked, /pgf/bar width=16pt, ymin=0, xmin=0.4, xmax=3.6, xtick={1,2,3}, xticklabels={Attn,MLP,Attn+MLP}, "
+             "ymajorgrids, enlarge y limits={upper, value=0.35}, "
+             "legend style={font=\\figLegendFont, draw=none, fill=none, at={(-0.12,-0.2)}, anchor=north, legend columns=-1, "
+             "/tikz/every even column/.append style={column sep=8pt}}")
+for i, (m, title) in enumerate(MODELS):
+    dense_key = LC[m][0]
+    df, dg = mean(dense_key, "e2e_forward_p50") * unit, mean(dense_key, "graph_b1_p50") * unit
+    keep, gone, tops = [], [], []
+    for x, (lab, v, w) in enumerate(LCFG, 1):
+        e = (v if m == "vitb" else w) + "/unmerged"
+        extra = mean(e, "e2e_forward_p50") * unit - df
+        extra_g = mean(e, "graph_b1_p50") * unit - dg
+        keep.append(f"({x},{extra_g:.3f})"); gone.append(f"({x},{extra - extra_g:.3f})")
+        tops.append((x, extra, 100 * (extra - extra_g) / extra))
+    b += f"\\nextgroupplot[title={{{title}}}" + (", ylabel={extra time per image (ms)}" if i == 0 else "") + "]\n"
+    b += f"\\addplot[fill=cAccent, draw=black, forget plot] coordinates {{{' '.join(keep)}}};\n"
+    b += f"\\addplot[fill=cGrey!35, draw=black, forget plot] coordinates {{{' '.join(gone)}}};\n"
+    for x, top, pct in tops:
+        b += f"\\node[font=\\scriptsize, anchor=south] at (axis cs:{x},{top:.3f}) {{$-${pct:.0f}\\%}};\n"
+    if i == 1:
+        b += ("\\addlegendimage{area legend, fill=cGrey!35, draw=black}\n\\addlegendentry{removed by a single launch (CUDA graph)}\n"
+              "\\addlegendimage{area legend, fill=cAccent, draw=black}\n\\addlegendentry{remaining with a single launch}\n")
+write("launch", b + END)
+
 # ---- 9. memory model: predicted against measured (batch 64, ViT-B constants) --------------------------------------
 rows, on = [], False
 for line in open(os.path.join(ROOT, "memory_model", "sweep_vs_predictions_13063.txt")):
@@ -227,22 +252,6 @@ miss = [r for r in rows if r[0] == "swinb_lora_attn_r8_L22-23"][0]
 b += (f"\\node[font=\\figLegendFont, anchor=west, align=left] (miss) at (axis cs:6.5,{miss[2] + 2.0:.2f}) {{Swin-B, start block 22:\\\\predicted {miss[2]:.2f},\\\\measured {miss[1] + 1e-9:.2f}}};\n"
       f"\\draw[->, cGrey] (miss.west) -- (axis cs:{miss[1] + 0.35:.2f},{miss[2] + 0.05:.2f});\n")
 write("mem_pred", b + "\\end{axis}\n\\end{tikzpicture}\n")
-
-# ---- 10. accuracy against the first adapted block (3 seeds) with the ranges predicted beforehand -----------------
-D = S["budget_diffs"]
-b = ("\\begin{tikzpicture}\n\\begin{axis}[width=\\figWone, height=\\figH, repaxis, xmin=-0.6, xmax=7.2, ymin=-2.8, ymax=0.6, xtick={0,3,6}, ymajorgrids, "
-     "xlabel={first adapted block $k$}, ylabel={accuracy against all blocks (pp)}, "
-     "legend style={font=\\figLegendFont, draw=none, fill=none}, legend pos=south west]\n"
-     "\\draw[cGrey] (axis cs:-0.6,0) -- (axis cs:7.2,0);\n")
-for x, lo, hi in ((2.75, -1.4, -0.2), (3.25, -1.4, -0.2), (5.75, -2.5, -0.7)):
-    b += f"\\draw[cGrey, line width=5pt, opacity=0.35] (axis cs:{x},{lo}) -- (axis cs:{x},{hi});\n"
-b += "\\addlegendimage{cGrey, line width=5pt, opacity=0.35}\n\\addlegendentry{predicted range}\n"
-for (a3, a6), dx, col, mark, style, lab in ((("deit_3_minus_all", "deit_6_minus_all"), -0.25, "cAttn", "*", "solid", "DeiT-B"),
-                                            (("vitb_3_minus_all_rerun", "vitb_6_minus_all_rerun"), 0.25, "cAccent", "square*", "densely dashed", "ViT-B")):
-    pts = f"({dx},0) +- (0,0) ({3 + dx},{D[a3]['acc']['mean']:.3f}) +- (0,{D[a3]['acc']['std']:.3f}) ({6 + dx},{D[a6]['acc']['mean']:.3f}) +- (0,{D[a6]['acc']['std']:.3f})"
-    b += (f"\\addplot[{col}, {style}, thick, mark={mark}, mark size=2pt, error bars/.cd, y dir=both, y explicit] coordinates {{{pts}}};\n"
-          f"\\addlegendentry{{{lab}}}\n")
-write("acc_start", b + "\\end{axis}\n\\end{tikzpicture}\n")
 
 # ---- generated tables (final_report/data/tab_*.tex) -----------------------------------------------------------------
 DATA = os.path.join(ROOT, "final_report", "data")

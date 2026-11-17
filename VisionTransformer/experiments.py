@@ -522,6 +522,11 @@ for _k in (1, 2, 3, 4, 5, 8, 10):
              layers=list(range(_k, 12)))
 _add_exp(f"lora_attn_r8{_layers_tag(list(range(3, 12)))}", **_B, rank=8, attn=_ATTN_QKV,
          layers=list(range(3, 12)))
+# ViT-B at the other start blocks (2026-11-17), profiled only, so that the memory-against-start-block figure
+# shows ViT-B itself (k = 3 and 6 are registered above and earlier).
+for _k in (1, 2, 4, 5, 8, 10):
+    _add_exp(f"lora_attn_r8{_layers_tag(list(range(_k, 12)))}", **_B, rank=8, attn=_ATTN_QKV,
+             layers=list(range(_k, 12)))
 for _k in (2, 4, 8, 16, 22):      # 2, 4, 22: first block of stages 2, 3, 4
     _add_exp(f"swinb_lora_attn_r8{_layers_tag(list(range(_k, 24)))}", **_S, rank=8, attn=_ATTN_QKV,
              layers=list(range(_k, 24)))

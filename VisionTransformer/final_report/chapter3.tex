@@ -41,8 +41,8 @@ a few tenths of a point (Appendix~\ref{app:impl}).
 
 \paragraph{Hardware and software.} All runs use one partition (44.25~GiB) of an NVIDIA B200 GPU, which NVIDIA's
 Multi-Instance GPU mechanism divides into partitions; the other partitions were used by other jobs at the same
-time. The software is PyTorch~\cite{paszke2019pytorch} with the HuggingFace Transformers and
-PEFT~\cite{mangrulkar2022peft} libraries. Every ViT-B LoRA configuration of Chapters~\ref{ch:lora_ft} and~\ref{ch:placement} was also trained with our own
+time. The software is PyTorch~2.11.0~\cite{paszke2019pytorch} (CUDA~12.8, Python~3.12.3) with the HuggingFace
+Transformers~5.16.1 and PEFT~0.20.0~\cite{mangrulkar2022peft} libraries, the same versions for every run. Every ViT-B LoRA configuration of Chapters~\ref{ch:lora_ft} and~\ref{ch:placement} was also trained with our own
 implementation of the model and of LoRA, from identical initial weights; the two implementations agree closely
 (Appendix~\ref{app:impl}), and the tables give the library results.
 
@@ -59,19 +59,17 @@ implementation of the model and of LoRA, from identical initial weights; the two
         the seeds.
   \item \textbf{Paired difference}: the difference between two configurations computed seed by seed, then
         averaged. It removes the variation that comes from the seed.
-  \item \textbf{Detectable difference}: a paired difference whose mean is larger in size than its standard
-        deviation and which has the same sign in at least 4 of 5 seeds (all 3 where only 3 exist). Differences of
-        about 0.2~pp are usually not detectable with 5 seeds. ``No detectable difference'' does not mean that two
-        configurations are equivalent. The rule is a description of the seeds we have, not a significance test:
-        with 5 seeds, a mean equal to the standard deviation is what a paired $t$-test would accept only at about
-        the 10\% level.
+  \item \textbf{How differences are described}: we give each paired difference as mean $\pm$ standard
+        deviation, with the number of seeds in which it has the same sign, and apply no significance tests. A
+        difference whose mean is smaller than its standard deviation is described as \emph{within the spread over
+        seeds}; this does not mean that the two configurations are equivalent.
   \item \textbf{Epoch time}: the time of one pass over the 45,000 training images (\emph{train}) or, without
         gradients, over the 5,000 validation images (\emph{validation}), averaged over the epochs of a run. Methods
         are compared by epoch time. The total time of a run depends on the number of epochs before early stopping,
         which varies for reasons unrelated to the cost of an epoch; totals are listed in the appendix and are not
         used for comparisons.
   \item \textbf{Forward, backward and optimiser time}: time per training batch of the forward pass, of the loss
-        and backward pass, and of the optimiser step (first epoch excluded).
+        and backward pass, and of the optimiser step, averaged over all batches of a run.
   \item \textbf{Peak training memory}: the largest amount of GPU memory occupied by tensors at any moment of
         training, as counted by PyTorch, in GiB ($1024^3$ bytes), at batch size 64 unless stated otherwise. It
         excludes the memory of the GPU runtime and memory that PyTorch has reserved but is not using (3--8\% more).

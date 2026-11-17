@@ -37,6 +37,7 @@
 /results/legacy/
 /results/summary_job*.json
 /final_report/comments.txt
+/presentation/comments.txt
 *.pt
 *.pth
 *.bin

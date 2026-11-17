@@ -14,7 +14,7 @@ report.
 
 | Question | Result |
 |---|---|
-| Accuracy | With the learning rate of each method chosen on validation loss, LoRA (rank 8) is 0.4–0.5 pp more accurate than full fine-tuning on Swin-B. On ViT-B it is never ahead: MLP and Attn+MLP show no detectable difference, attention LoRA is 0.21 ± 0.13 pp below. |
+| Accuracy | With the learning rate of each method chosen on validation loss, LoRA (rank 8) is 0.4–0.5 pp more accurate than full fine-tuning on Swin-B. On ViT-B there is no evidence that it is better: MLP and Attn+MLP are level with it, attention LoRA is 0.21 ± 0.13 pp below. |
 | Tuning matters | Full fine-tuning of ViT-B at a learning rate three times too small loses 0.60 ± 0.23 pp, enough to make LoRA look better. |
 | Training memory (batch 64) | Saving of about 33% (attention), 14% (MLP), 6% (both), on both models; about 70% at batch size 1. The saving depends on which layers are adapted, not on the number of trained parameters. |
 | Training time | Epochs are 12–26% shorter. |
@@ -55,6 +55,7 @@ no edge device, no power measurements.
 | `results_v2_lr3e-5/` | ViT-B full fine-tuning at learning rate 3e-5. The files are named after the registry entry `baseline_lr1e-5`; the rate actually used is recorded in `config.lr` |
 | `results_v3/` | Repeat of ViT-B attention LoRA on all blocks (3 seeds) |
 | `results_profile/`, `results_v2_profile/`, `results_mem_profile/` | Memory profiles |
+| `results_mem_profile_vitb/`, `results_mem_profile_bs/` | ViT-B at every first adapted block; batch sizes 1, 2, 4, 8 (job `job_mem_extra_2.sh`) |
 | `results_merge/`, `results_merge_trained/`, `results_v2_merge/` | Merge studies |
 | `results_latency/` | Latency study |
 

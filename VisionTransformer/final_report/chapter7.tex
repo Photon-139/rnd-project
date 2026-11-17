@@ -69,17 +69,24 @@ Chapter~\ref{ch:placement} gave two points per model: adapters from block 0, and
 predicts for a start at block 3 (a loss of about 0.7--0.8~pp on DeiT-B and ViT-B) and at block 6 on DeiT-B (about
 1.4~pp), each with a range, and we predicted the cost of these runs. All were then trained with three seeds.
 
-\begin{figure}[!htb]
-\centering
-\input{figures/acc_start}
-\caption{Test accuracy of attention LoRA on every block from $k$ to the last, relative to all blocks (paired
-differences, 3 seeds; error bars: standard deviation; ViT-B against all blocks trained in the same set of runs). Grey bars: the ranges predicted before the runs (at $k=3$:
-left DeiT-B, right ViT-B).}
-\label{fig:acc_start}
-\end{figure}
+\begin{table}[!htb]
+\centering\small
+\begin{tabular}{lccc}
+\toprule
+blocks $k$ to the last & predicted (pp) & measured (pp) & prediction \\
+\midrule
+DeiT-B, $k=3$ & $-$0.7 ($-$1.4 to $-$0.2) & $+$0.15 $\pm$ 0.04 & failed \\
+DeiT-B, $k=6$ & $-$1.4 ($-$2.5 to $-$0.7) & $-$0.32 $\pm$ 0.35 & failed \\
+ViT-B, $k=3$  & $-$0.8 ($-$1.4 to $-$0.2) & $-$0.31 $\pm$ 0.27 & held, at the edge \\
+\bottomrule
+\end{tabular}
+\caption{Change in test accuracy against attention LoRA on all blocks (paired, 3 seeds; negative = less
+accurate), predicted before the runs and measured.}
+\label{tab:acc_start}
+\end{table}
 
 The rule did not hold: a later start cost less than the straight line predicted
-(Figure~\ref{fig:acc_start}; Table~\ref{tab:acc_pred} in the appendix). Both DeiT-B predictions failed, and so did
+(Table~\ref{tab:acc_start}; details in Table~\ref{tab:acc_pred} in the appendix). Both DeiT-B predictions failed, and so did
 the predicted order on DeiT-B. The ViT-B measurement ($-$0.31~pp) lies at the upper edge of its predicted range;
 against the earlier all-blocks runs of Chapter~\ref{ch:placement} it was $-$0.12 $\pm$ 0.21~pp, outside the range.
 The cost predictions held: the training runs reproduced the profiled peak memory to four decimals (4.2600 and
@@ -92,7 +99,7 @@ The cost predictions held: the training runs reproduced the profiled peak memory
         set of runs, in all three seeds, with a worse validation loss in all three. Two sets of ViT-B runs differ by
         up to 0.2~pp in their means (Appendix~\ref{app:impl}), so the size of this cost is uncertain.
   \item \emph{How much a late start costs depends on the model.} The second half loses 1.66 $\pm$ 0.24~pp on ViT-B
-        and 0.32 $\pm$ 0.35~pp on DeiT-B, which is not detectable (same three seeds), and 1.18 $\pm$ 0.19~pp on Swin-B
+        and 0.32 $\pm$ 0.35~pp on DeiT-B, within the spread over seeds (same three seeds), and 1.18 $\pm$ 0.19~pp on Swin-B
         (5 seeds). ViT-B and
         DeiT-B have the same architecture and differ only in pretraining, so the shape of a model does not
         determine this loss.

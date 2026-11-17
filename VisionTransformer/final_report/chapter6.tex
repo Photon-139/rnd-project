@@ -84,14 +84,15 @@ prediction time.
 of images follow the same pattern. The penalty grows with the number of adapter layers: it is largest for Attn+MLP
 and smallest for the half-block placements.
 
-\paragraph{Much of the penalty is launch overhead.} The extra arithmetic of the adapters is only a few percent of
-the model's, so the size of the penalty needs an explanation. Normally the CPU tells the GPU to run each operation
+\paragraph{Much of the penalty is launch overhead.} Counted from the shapes of the layers, the adapters add
+0.5--1.3\% (ViT-B) and 1.0--2.6\% (Swin-B) to the multiply-additions of a forward pass, so the size of the penalty
+needs an explanation. Normally the CPU tells the GPU to run each operation
 of the forward pass separately, a few hundred per pass, and each such \emph{launch} has a fixed cost of a few
 microseconds, however small the operation. A CUDA graph records the whole sequence once and afterwards replays it
 with a single launch; the GPU performs the same computations, but the cost per launch disappears. Timing the
 forward pass with and without the graph therefore shows how much of it is launch overhead. On Swin-B the graph
-removes 48--62\% of the extra time of the unmerged adapters; on ViT-B it removes 20--27\%. The rest is the GPU time
-of the adapters' many small operations, which we did not break down further. The graph is used here only as a
+removes 48--62\% of the extra time of the unmerged adapters; on ViT-B it removes 20--27\%. The rest is GPU time
+spent on the adapters' many small operations, which we did not break down further. The graph is used here only as a
 diagnostic; all other latencies are measured in the normal way.
 
 \paragraph{The penalty shrinks with batching.} The launch cost is the same whatever the batch size, so with several

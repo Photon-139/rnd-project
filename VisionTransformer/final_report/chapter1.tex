@@ -28,8 +28,8 @@ same settings and the same five seeds, so that a statement about LoRA can be che
 \begin{enumerate}
   \item \textbf{Accuracy: is LoRA as accurate as full fine-tuning?} With the learning rate of each method chosen on
         validation loss, LoRA at rank 8 is more accurate than full fine-tuning on Swin-B, by 0.4--0.5 percentage
-        points (pp) for each of the three targets. On ViT-B it is never ahead: two targets show no detectable
-        difference, and attention LoRA is 0.2~pp below. The comparison depends on tuning full fine-tuning: at a learning rate three
+        points (pp) for each of the three targets. On ViT-B there is no evidence that it is better: two targets are level with
+        full fine-tuning, and attention LoRA is 0.2~pp below. The comparison depends on tuning full fine-tuning: at a learning rate three
         times smaller, full fine-tuning of ViT-B is 0.6~pp less accurate. Rank 16 gives no gain over rank 8 on
         ViT-B (Chapter~\ref{ch:lora_ft}).
   \item \textbf{Training cost: what does LoRA save?} The saving in training memory depends on which layers are
@@ -40,9 +40,8 @@ same settings and the same five seeds, so that a statement about LoRA can be che
   \item \textbf{Placement: which blocks should receive adapters?} Training memory is set mainly by the first block
         that has an adapter, because the backward pass has to reach it. Adapting only the second half of the blocks
         therefore needs the least memory, but it loses 1.2--1.6~pp and falls below full fine-tuning on both models.
-        Adapting every second block and skipping the first one (the odd blocks) saves 11--14\% of the memory, with no
-        detectable loss of accuracy against adapters on all blocks on Swin-B; on ViT-B a small loss cannot be
-        excluded (Chapter~\ref{ch:placement}).
+        Adapting every second block and skipping the first one (the odd blocks) saves 11--14\% of the memory; on Swin-B
+        its accuracy is level with adapters on all blocks, on ViT-B a small loss cannot be excluded (Chapter~\ref{ch:placement}).
   \item \textbf{Deployment: what changes at prediction time?} For a single task, nothing, provided the adapters are
         merged: a merged model gives the same predictions and has the memory and speed of an ordinary model.
         Adapters kept separate make single-image predictions 8--55\% slower on the GPU. The small stored file
@@ -57,7 +56,7 @@ placement, written down before the runs, failed (Chapter~\ref{ch:budget}).
 \section{Scope and organisation}
 
 All results are for one dataset (CIFAR-100, with the images upsampled to the input size of the models), in 32-bit
-floating point, on one partition of a shared server GPU. No edge device was available, and the power drawn by a
+floating point, on one partition of a shared server GPU. No edge device was used, and the power drawn by a
 single job could not be measured. Chapter~\ref{ch:background} gives the background and related work, and
 Chapter~\ref{ch:setup} the experimental setup and the definitions of all metrics.
 Chapters~\ref{ch:lora_ft} to~\ref{ch:budget} present the results, and Chapter~\ref{ch:conclusion} concludes with
