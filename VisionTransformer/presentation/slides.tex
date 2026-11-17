@@ -40,6 +40,8 @@ Department of Computer Science and Engineering, IIT Dharwad}
 
 % 1 ---------------------------------------------------------------------------------------------------------------
 {\setbeamertemplate{footline}{}
+\section{Talk}
+\subsection{1. Title}
 \begin{frame}[plain]
 \vspace{6mm}
 \begin{minipage}[c]{0.74\textwidth}
@@ -59,6 +61,7 @@ R\&D project presentation, 20 November 2026\par}
 \end{frame}}
 
 % 2 ---------------------------------------------------------------------------------------------------------------
+\subsection{2. What does LoRA cost, and what does it save?}
 \begin{frame}{What does LoRA cost, and what does it save?}
 \begin{columns}[T]
 \begin{column}{0.47\textwidth}
@@ -90,6 +93,7 @@ R\&D project presentation, 20 November 2026\par}
 \end{frame}
 
 % 3 ---------------------------------------------------------------------------------------------------------------
+\subsection{3. Setup: two models, the same configurations, five seeds}
 \begin{frame}{Setup: two models, the same configurations, five seeds}
 \begin{columns}[T]
 \begin{column}{0.5\textwidth}
@@ -125,6 +129,7 @@ Every comparison uses the same configurations and seeds on both models.
 \end{frame}
 
 % 4 ---------------------------------------------------------------------------------------------------------------
+\subsection{4. Full fine-tuning must be tuned before it is compared}
 \begin{frame}{Full fine-tuning must be tuned before it is compared}
 \vspace{-1mm}
 {\renewcommand{\figH}{4.2cm}\centering\input{../final_report/figures/lr_check_val}\par}
@@ -149,6 +154,7 @@ Every comparison uses the same configurations and seeds on both models.
 \end{frame}
 
 % 5 ---------------------------------------------------------------------------------------------------------------
+\subsection{5. LoRA is ahead on Swin-B; on ViT-B it is level or slightly behind}
 \begin{frame}{LoRA is ahead on Swin-B; on ViT-B it is level or slightly behind}
 \vspace{-1mm}
 {\renewcommand{\figH}{4.5cm}\centering\input{../final_report/figures/acc_seeds}\par}
@@ -173,6 +179,7 @@ Every comparison uses the same configurations and seeds on both models.
 \end{frame}
 
 % 6 ---------------------------------------------------------------------------------------------------------------
+\subsection{6. Training memory: the saving depends on which layers are adapted}
 \begin{frame}{Training memory: the saving depends on which layers are adapted}
 \vspace{-1mm}
 {\centering\input{../final_report/figures/mem_targets}\par}
@@ -194,6 +201,7 @@ Peak memory at batch size 64; identical in all 5 seeds.
 \end{frame}
 
 % 7 ---------------------------------------------------------------------------------------------------------------
+\subsection{7. Why: memory is what the backward pass must keep}
 \begin{frame}{Why: memory is what the backward pass must keep}
 \centering
 \scalebox{0.95}{\input{../final_report/figures_static/reach}}
@@ -219,6 +227,7 @@ Peak memory at batch size 64; identical in all 5 seeds.
 \end{frame}
 
 % 8 ---------------------------------------------------------------------------------------------------------------
+\subsection{8. The saving is largest at small batches}
 \begin{frame}{The saving is largest at small batches}
 \vspace{-1mm}
 {\centering\input{../final_report/figures/saving_batch}\par}
@@ -240,6 +249,7 @@ Peak memory at batch size 64; identical in all 5 seeds.
 \end{frame}
 
 % 9 --------------------------------------------------------------------------------------------------------------
+\subsection{9. Training is faster per epoch, and a task is stored in megabytes}
 \begin{frame}{Training is faster per epoch, and a task is stored in megabytes}
 \vspace{-1mm}
 {\centering\input{../final_report/figures/time_batch}\par}
@@ -263,6 +273,7 @@ Peak memory at batch size 64; identical in all 5 seeds.
 \end{frame}
 
 % 10 --------------------------------------------------------------------------------------------------------------
+\subsection{10. Placement: adapting only the second half costs accuracy}
 \begin{frame}{Placement: adapting only the second half costs accuracy}
 \vspace{-1mm}
 {\renewcommand{\figH}{3.8cm}\centering\input{../final_report/figures/placement}\par}
@@ -284,6 +295,7 @@ The pp values on the left: change against attention LoRA on all blocks, compared
 \end{frame}
 
 % 11 --------------------------------------------------------------------------------------------------------------
+\subsection{11. Training memory is set by the first adapted block}
 \begin{frame}{Training memory is set by the first adapted block}
 \vspace{-1mm}
 {\renewcommand{\figH}{4.4cm}\centering\input{../final_report/figures/mem_start}\par}
@@ -308,6 +320,7 @@ The pp values on the left: change against attention LoRA on all blocks, compared
 \end{frame}
 
 % 12 --------------------------------------------------------------------------------------------------------------
+\subsection{12. Deployment: a merged LoRA model is an ordinary model}
 \begin{frame}{Deployment: a merged LoRA model is an ordinary model}
 \begin{columns}[T]
 \begin{column}{0.47\textwidth}
@@ -341,6 +354,7 @@ unmerged, MLP & 0.946 & 2.192 \\
 \end{frame}
 
 % 13 --------------------------------------------------------------------------------------------------------------
+\subsection{13. Unmerged adapters slow down single-image predictions}
 \begin{frame}{Unmerged adapters slow down single-image predictions}
 \vspace{-1mm}
 {\centering\input{../final_report/figures/latency}\par}
@@ -365,6 +379,7 @@ unmerged, MLP & 0.946 & 2.192 \\
 \end{frame}
 
 % 14 -------------------------------------------------------------------------------------------------------------
+\subsection{14. Why unmerged adapters are slow: many small GPU launches}
 \begin{frame}{Why unmerged adapters are slow: many small GPU launches}
 \vspace{-1mm}
 {\renewcommand{\figH}{4.0cm}\centering\input{../final_report/figures/launch}\par}
@@ -389,6 +404,7 @@ unmerged, MLP & 0.946 & 2.192 \\
 \end{frame}
 
 % 15 --------------------------------------------------------------------------------------------------------------
+\subsection{15. Closing study: training memory can be predicted}
 \begin{frame}{Closing study: training memory can be predicted}
 \begin{columns}[T]
 \begin{column}{0.50\textwidth}
@@ -411,6 +427,7 @@ Which placement is the most accurate under a budget is still open (future work).
 \end{frame}
 
 % 16 --------------------------------------------------------------------------------------------------------------
+\subsection{16. Conclusions and limitations}
 \begin{frame}{Conclusions and limitations}
 \begin{columns}[T]
 \begin{column}{0.56\textwidth}
@@ -439,10 +456,12 @@ Which placement is the most accurate under a budget is still open (future work).
 
 % ==================================================================================================================
 \appendix
+\section{Backup slides}
 \begin{frame}[plain]
 \centering\Large\bfseries\color{cInk} Backup slides
 \end{frame}
 
+\subsection{18. Learning-rate check, all numbers (3 seeds)}
 \begin{frame}{Backup: learning-rate check, all numbers (3 seeds)}
 \centering\scriptsize
 \begin{tabular}{llccc}
@@ -455,6 +474,7 @@ method & learning rate & validation loss & test acc.\ (\%) & stopping epoch \\
 \src{$^*$ lowest validation loss of the method on that model. ViT-B full FT at $10^{-4}$: an earlier set of runs.}
 \end{frame}
 
+\subsection{19. How far to trust the ViT-B difference}
 \begin{frame}{Backup: how far to trust the ViT-B difference}
 \small
 \begin{columns}[T]
@@ -490,6 +510,7 @@ Attn+MLP & $-$0.028 & $-$0.019 \\
 \take{Against an untuned full fine-tuning ($10^{-5}$), LoRA would have looked 0.4--0.7 pp better on ViT-B.}
 \end{frame}
 
+\subsection{20. Rank 16 gives no gain on ViT-B}
 \begin{frame}{Backup: rank 16 gives no gain on ViT-B}
 \small\centering
 \begin{tabular}{lccccc}
@@ -510,6 +531,7 @@ Attn+MLP & 91.44 & 91.50 & $+$0.05 $\pm$ 0.12 & 7.644 & 7.679 \\
 \end{itemize}
 \end{frame}
 
+\subsection{21. Which target is most accurate? Only at rate 1e-4}
 \begin{frame}{Backup: which target is most accurate? Only ``at rate $10^{-4}$''}
 \small
 \begin{itemize}
@@ -520,6 +542,7 @@ Attn+MLP & 91.44 & 91.50 & $+$0.05 $\pm$ 0.12 & 7.644 & 7.679 \\
 \take{We do not claim that the MLP is the better target. The cost difference is the robust result.}
 \end{frame}
 
+\subsection{22. Placement accuracies (5 seeds, paired against all blocks)}
 \begin{frame}{Backup: placement accuracies (5 seeds, paired against all blocks)}
 \small\centering
 \begin{tabular}{lcccc}
@@ -539,6 +562,7 @@ full FT & 91.31 $\pm$ 0.15 & $+$0.21 $\pm$ 0.13 & 91.26 $\pm$ 0.23 & $-$0.48 $\p
 Even blocks: within the spread over seeds of all blocks on both models (not equivalence; Swin-B has one seed at $+$0.72 pp).
 \end{frame}
 
+\subsection{23. Odd blocks, a cheap saving}
 \begin{frame}{Backup: odd blocks, a cheap saving}
 \small
 \centering
@@ -569,6 +593,7 @@ Swin-B & $+$0.08 $\pm$ 0.27 \ (2 of 5 seeds lower) & 8.18 vs 9.55 \ ($-$14\%) & 
 \end{columns}
 \end{frame}
 
+\subsection{24. Throughput, CPU latency and task switching}
 \begin{frame}{Backup: throughput, CPU latency and task switching}
 \small
 \begin{columns}[T]
@@ -598,6 +623,7 @@ Swin-B & 13--37\% & 2--17\% \\
 \end{columns}
 \end{frame}
 
+\subsection{25. Our own implementation agrees with the library}
 \begin{frame}{Backup: our own implementation agrees with the library}
 \small
 Every ViT-B LoRA configuration was trained twice per seed: HuggingFace + PEFT, and our own ViT and LoRA code, from identical initial weights.
@@ -610,6 +636,7 @@ Every ViT-B LoRA configuration was trained twice per seed: HuggingFace + PEFT, a
 \textbf{Run-to-run variation}: the same ViT-B configuration and seeds trained again differ by 0.04--0.15 pp per seed (one run 0.36 pp), and by 0.1--0.2 pp in the mean. Differences of about 0.2 pp cannot be shown or excluded with 5 seeds.
 \end{frame}
 
+\subsection{26. Starting at block 3, and how much a late start costs}
 \begin{frame}{Backup: starting at block 3, and how much a late start costs}
 \small\centering
 \begin{tabular}{lccc}
@@ -630,6 +657,7 @@ ViT-B, blocks 6--11 $-$ all & (known) & $-$1.66 $\pm$ 0.24 & $+$0.061 $\pm$ 0.00
 \end{itemize}
 \end{frame}
 
+\subsection{27. The memory formula and its one miss}
 \begin{frame}{Backup: the memory formula and its one miss}
 \small
 \[
@@ -644,6 +672,7 @@ ViT-B, blocks 6--11 $-$ all & (known) & $-$1.66 $\pm$ 0.24 & $+$0.061 $\pm$ 0.00
 \end{itemize}
 \end{frame}
 
+\subsection{28. Other ways to meet a budget; an early indicator that fails}
 \begin{frame}{Backup: other ways to meet a budget; an early indicator that fails}
 \small
 \textbf{Gradient accumulation}
@@ -661,6 +690,7 @@ ViT-B, blocks 6--11 $-$ all & (known) & $-$1.66 $\pm$ 0.24 & $+$0.061 $\pm$ 0.00
 \end{itemize}
 \end{frame}
 
+\subsection{29. Why power was not measured}
 \begin{frame}{Backup: why power was not measured}
 \small
 \begin{itemize}
