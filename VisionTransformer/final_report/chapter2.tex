@@ -129,11 +129,9 @@ nothing.}
 \section{Related work}
 \label{sec:related}
 
-This report is a measurement study, and we did not carry out a survey of the literature. Three works are directly
+This report is a measurement study, and we did not carry out a survey of the literature. Two works are directly
 connected to it. LoRA~\cite{hu2022lora} is the method we study; it was proposed for language models, and we use its
 implementation in the PEFT library~\cite{mangrulkar2022peft}. TinyTL~\cite{cai2020tinytl} observed, for
 convolutional networks, that the memory of training is dominated by the stored activations and not by the number of
 trained parameters; Chapters~\ref{ch:lora_ft} and~\ref{ch:placement} measure the same effect for LoRA in vision
-transformers. Surgical fine-tuning~\cite{lee2023surgical} found that which layers are best to train depends on how
-the new data differs from the pretraining data, which is related to our placement results
-(Chapter~\ref{ch:placement}). We make no claim that the measurements reported here are new.
+transformers. We make no claim that the measurements reported here are new.

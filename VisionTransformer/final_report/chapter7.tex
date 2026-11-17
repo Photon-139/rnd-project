@@ -64,50 +64,45 @@ block. A budget of 4.5~GiB at batch size 64, for example, is met on ViT-B and De
 
 \section{Predicting accuracy: a rule that failed}
 
-Chapter~\ref{ch:placement} gave two points per model: adapters from block 0, and from the middle of the model, where
-1.2--1.6~pp are lost. The simplest rule joining them is a straight line. Before the runs we wrote down what it
-predicts for a start at block 3 (a loss of about 0.7--0.8~pp on DeiT-B and ViT-B) and at block 6 on DeiT-B (about
-1.4~pp), each with a range, and we predicted the cost of these runs. All were then trained with three seeds.
+For the memory budget, the question is how much accuracy is lost when the adapters start at block $k$ instead of
+block 0. Before training any such configuration, we wrote down a simple rule for this loss: it grows in proportion to
+the fraction of the blocks that are skipped,
+\[
+  \Delta\text{acc}(k) \;\approx\; -\beta\,\frac{k}{L},
+\]
+where $\Delta\text{acc}$ is the change in test accuracy against adapters on all blocks, $k$ the first adapted block
+and $L$ the number of blocks. The constant $\beta$ came from the two second-half results of
+Chapter~\ref{ch:placement}, which start half-way through the model ($k/L = 0.5$): a loss of 1.56~pp on ViT-B and
+1.18~pp on Swin-B gives $\beta = 3.1$ and $2.4$~pp, on average 2.7~pp. For a start at block 3 of 12 ($k/L = 0.25$)
+the rule predicts a loss of 0.7~pp on DeiT-B (average $\beta$) and 0.8~pp on ViT-B (its own $\beta$), and for a start
+at block 6 on DeiT-B a loss of 1.4~pp. Each prediction was given a range of about $\pm$0.6~pp, chosen by judgement,
+not computed. The rule predicts a change, not an accuracy, because accuracy levels differ between models (DeiT-B is
+about 4.5~pp below ViT-B) and because a change, compared seed by seed with the all-blocks run, is far less affected
+by the variation between seeds and between sets of runs. Table~\ref{tab:acc_start} compares the predictions with the
+measurements.
 
 \begin{table}[!htb]
-\centering\small
-\begin{tabular}{lccc}
+\centering\footnotesize
+\setlength{\tabcolsep}{3.5pt}
+\begin{tabular}{lccccc}
 \toprule
-blocks $k$ to the last & predicted (pp) & measured (pp) & prediction \\
+attention LoRA & all blocks & blocks $k$ to last & predicted & measured & within the \\
+ & (\%) & (\%) & change (pp) & change (pp) & prediction? \\
 \midrule
-DeiT-B, $k=3$ & $-$0.7 ($-$1.4 to $-$0.2) & $+$0.15 $\pm$ 0.04 & failed \\
-DeiT-B, $k=6$ & $-$1.4 ($-$2.5 to $-$0.7) & $-$0.32 $\pm$ 0.35 & failed \\
-ViT-B, $k=3$  & $-$0.8 ($-$1.4 to $-$0.2) & $-$0.31 $\pm$ 0.27 & held, at the edge \\
+DeiT-B, $k=3$ & 86.56 & 86.71 & $-$0.7 ($-$1.4 to $-$0.2) & $+$0.15 $\pm$ 0.04 & no \\
+DeiT-B, $k=6$ & 86.56 & 86.24 & $-$1.4 ($-$2.5 to $-$0.7) & $-$0.32 $\pm$ 0.35 & no \\
+ViT-B, $k=3$  & 91.28 & 90.97 & $-$0.8 ($-$1.4 to $-$0.2) & $-$0.31 $\pm$ 0.27 & yes, at the edge \\
 \bottomrule
 \end{tabular}
-\caption{Change in test accuracy against attention LoRA on all blocks (paired, 3 seeds; negative = less
-accurate), predicted before the runs and measured.}
+\caption{Accuracy of attention LoRA on all blocks and on blocks $k$ to the last (mean over 3 seeds), and the change
+between them: predicted with the rule above before the runs, and measured (mean $\pm$ standard deviation of the
+per-seed differences; negative = less accurate). Details: Table~\ref{tab:acc_pred} in the appendix.}
 \label{tab:acc_start}
 \end{table}
 
-The rule did not hold: a later start cost less than the straight line predicted
-(Table~\ref{tab:acc_start}; details in Table~\ref{tab:acc_pred} in the appendix). Both DeiT-B predictions failed, and so did
-the predicted order on DeiT-B. The ViT-B measurement ($-$0.31~pp) lies at the upper edge of its predicted range;
-against the earlier all-blocks runs of Chapter~\ref{ch:placement} it was $-$0.12 $\pm$ 0.21~pp, outside the range.
-The cost predictions held: the training runs reproduced the profiled peak memory to four decimals (4.2600 and
-3.0610~GiB), and the training epoch (278 and 233~s) and the backward pass were predicted to within 1~s and 1~ms.
-\begin{itemize}
-  \item \emph{On DeiT-B, starting at block 3 costs no accuracy in these runs.} It is 0.15 $\pm$ 0.04~pp above all
-        blocks, with the lower validation loss in all three seeds, 22\% less training memory and 14\% shorter
-        training epochs.
-  \item \emph{On ViT-B it has a small cost in these runs}: 0.31 $\pm$ 0.27~pp below all blocks trained in the same
-        set of runs, in all three seeds, with a worse validation loss in all three. Two sets of ViT-B runs differ by
-        up to 0.2~pp in their means (Appendix~\ref{app:impl}), so the size of this cost is uncertain.
-  \item \emph{How much a late start costs depends on the model.} The second half loses 1.66 $\pm$ 0.24~pp on ViT-B
-        and 0.32 $\pm$ 0.35~pp on DeiT-B, within the spread over seeds (same three seeds), and 1.18 $\pm$ 0.19~pp on Swin-B
-        (5 seeds). ViT-B and
-        DeiT-B have the same architecture and differ only in pretraining, so the shape of a model does not
-        determine this loss.
-  \item \emph{A cheap early indicator does not rank placements reliably.} We ranked the seven LoRA configurations
-        of each model by their validation loss after the first epoch (lowest first) and by their final test accuracy
-        (highest first). The agreement of the two rankings, measured by Kendall's $\tau$ (1 = the same order, 0 =
-        unrelated), is 0.62 on ViT-B and 0.24 on Swin-B: placements that include the early blocks learn slowly
-        at first and finish high.
-\end{itemize}
-DeiT-B is about 4.5~pp less accurate than ViT-B on this task (86.56 $\pm$ 0.19\% for attention LoRA on all blocks),
-probably because it was pretrained on ImageNet-1k only; we did not test this, and DeiT-B was not fully fine-tuned.
+The rule did not hold: a later start cost less than the straight line predicted. On DeiT-B, starting at block 3
+cost no accuracy in these runs, with 22\% less training memory; on ViT-B it cost 0.31~pp, not much more than the
+0.2~pp by which two sets of ViT-B runs with the same seeds can differ (Appendix~\ref{app:impl}). The memory and time predictions for the same
+runs held: the training runs reproduced the profiled peak memory to four decimals (4.2600 and 3.0610~GiB), and the
+training epoch and the backward pass were predicted to within 1~s and 1~ms. The accuracy of a placement therefore
+cannot be read from the shape of the model in the way its memory can, and we did not find another way to predict it.

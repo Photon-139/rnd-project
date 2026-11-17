@@ -95,8 +95,8 @@ removes 48--62\% of the extra time of the unmerged adapters; on ViT-B it removes
 spent on the adapters' many small operations, which we did not break down further. The graph is used here only as a
 diagnostic; all other latencies are measured in the normal way.
 
-\paragraph{The penalty shrinks with batching.} The launch cost is the same whatever the batch size, so with several
-images per batch it is shared among them. In batches of 8 or more, unmerged adapters cost 2--13\% of the throughput
+\paragraph{The penalty shrinks with batching.} Each operation is launched once for the whole batch, so the launch cost is the same
+whatever the batch size and is shared among the images in it. In batches of 8 or more, unmerged adapters cost 2--13\% of the throughput
 on ViT-B and 2--17\% on Swin-B, against 8--25\% and 13--37\% at batch size 1 (Table~\ref{tab:throughput} in the
 appendix). Merged models have the throughput of the dense model at every batch size.
 

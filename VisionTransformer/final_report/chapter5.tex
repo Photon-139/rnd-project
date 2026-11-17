@@ -20,7 +20,7 @@ adapted blocks & block & (\%) & (pp, paired) & (pp, paired) & (GiB) & (s) \\
 \end{tabular}
 \caption{Attention LoRA (rank 8, learning rate $10^{-4}$) on different sets of blocks; mean $\pm$ standard deviation
 over 5 seeds. First block = first adapted block. vs all blocks, vs full FT = paired difference to the run with the
-same seed. Peak = peak training memory at batch size 64 (identical in all seeds); epoch = train epoch time. Per seed: Appendix~\ref{app:seeds}; forward and backward times:
+same seed. Peak = peak training memory at batch size 64 (identical in all seeds); epoch = mean train epoch time (standard deviation at most 1.2~s). Per seed: Appendix~\ref{app:seeds}; forward and backward times:
 Table~\ref{tab:time}.}
 \label{tab:place}
 \end{table}
@@ -32,8 +32,7 @@ below all blocks on ViT-B and 1.18 $\pm$ 0.19~pp below on Swin-B, in every seed.
 full fine-tuning (by 1.77 and 0.70~pp, in every seed), and its validation loss is the highest of all placements. In
 this setting adapters on the later half alone are not enough. A possible explanation, which we have not tested, is that CIFAR-100 images
 upsampled from $32\times32$ differ from ImageNet images mainly in their fine structure, which the early blocks
-process; this would agree with the observation of surgical fine-tuning~\cite{lee2023surgical} that the early
-layers are the ones to train when it is the input that changes. The two ``second halves'' are not the same thing structurally (blocks 12--23 of
+process. The two ``second halves'' are not the same thing structurally (blocks 12--23 of
 Swin-B are the last ten blocks of its third stage and its fourth stage), and the size of the loss depends on the
 model (Chapter~\ref{ch:budget}).
 

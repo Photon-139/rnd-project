@@ -371,7 +371,7 @@ unmerged, MLP & 0.946 & 2.192 \\
 \footnotesize
 \begin{itemize}
   \item why: next slide
-  \item in batches of 8 or more: 2--17\%
+  \item in batches of 8 or more: 2--17\% (each launch serves the whole batch)
 \end{itemize}
 \end{column}
 \end{columns}
@@ -636,24 +636,25 @@ Every ViT-B LoRA configuration was trained twice per seed: HuggingFace + PEFT, a
 \textbf{Run-to-run variation}: the same ViT-B configuration and seeds trained again differ by 0.04--0.15 pp per seed (one run 0.36 pp), and by 0.1--0.2 pp in the mean. Differences of about 0.2 pp cannot be shown or excluded with 5 seeds.
 \end{frame}
 
-\subsection{26. Starting at block 3, and how much a late start costs}
-\begin{frame}{Backup: starting at block 3, and how much a late start costs}
-\small\centering
-\begin{tabular}{lccc}
+\subsection{26. The accuracy rule for a later start, and why it failed}
+\begin{frame}{Backup: the accuracy rule for a later start, and why it failed}
+\small
+\textbf{Rule}, written down before the runs: $\Delta\text{acc}(k) \approx -\beta\,k/L$ against adapters on all blocks; $\beta$ from the second-half results ($k/L=0.5$): 3.1 (ViT-B), 2.4 (Swin-B), average 2.7 pp. Ranges $\pm$0.6 pp by judgement.
+\par\medskip\centering\footnotesize
+\begin{tabular}{lccccc}
 \toprule
-comparison (3 seeds) & predicted (pp) & measured (pp) & validation loss \\
+attention LoRA & all blocks & blocks $k$ on & predicted & measured & within? \\
+ & (\%) & (\%) & (pp) & (pp, 3 seeds) & \\
 \midrule
-DeiT-B, blocks 3--11 $-$ all & $-$0.7 [$-$1.4, $-$0.2] & $+$0.15 $\pm$ 0.04 & $-$0.010 $\pm$ 0.002 \\
-DeiT-B, blocks 6--11 $-$ all & $-$1.4 [$-$2.5, $-$0.7] & $-$0.32 $\pm$ 0.35 & $+$0.016 $\pm$ 0.003 \\
-ViT-B, blocks 3--11 $-$ all & $-$0.8 [$-$1.4, $-$0.2] & $-$0.31 $\pm$ 0.27 & $+$0.016 $\pm$ 0.003 \\
-ViT-B, blocks 6--11 $-$ all & (known) & $-$1.66 $\pm$ 0.24 & $+$0.061 $\pm$ 0.004 \\
+DeiT-B, $k=3$ & 86.56 & 86.71 & $-$0.7 ($-$1.4 to $-$0.2) & $+$0.15 $\pm$ 0.04 & \alert{no} \\
+DeiT-B, $k=6$ & 86.56 & 86.24 & $-$1.4 ($-$2.5 to $-$0.7) & $-$0.32 $\pm$ 0.35 & \alert{no} \\
+ViT-B, $k=3$  & 91.28 & 90.97 & $-$0.8 ($-$1.4 to $-$0.2) & $-$0.31 $\pm$ 0.27 & at the edge \\
 \bottomrule
 \end{tabular}
-\par\medskip\raggedright
+\par\medskip\raggedright\small
 \begin{itemize}
-  \item Block 3: 22\% less memory (4.26 vs 5.46 GiB), 14\% shorter epochs. No cost on DeiT-B in these runs; \alert{a small cost on ViT-B} (lower in 3 of 3 seeds, validation loss worse in 3 of 3)
-  \item Second half: $-$1.66 pp (ViT-B), $-$1.18 pp (Swin-B, 5 seeds), $-$0.32 $\pm$ 0.35 pp (DeiT-B): it depends on the model. ViT-B block 3 is at the upper edge of its predicted range
-  \item The cost predictions (memory, epoch time, backward time) all held
+  \item a later start cost \textbf{less} than predicted; start at block 3: 22\% less memory, 14\% shorter epochs
+  \item the memory and time predictions for the same runs all held
 \end{itemize}
 \end{frame}
 
@@ -672,8 +673,8 @@ ViT-B, blocks 6--11 $-$ all & (known) & $-$1.66 $\pm$ 0.24 & $+$0.061 $\pm$ 0.00
 \end{itemize}
 \end{frame}
 
-\subsection{28. Other ways to meet a budget; an early indicator that fails}
-\begin{frame}{Backup: other ways to meet a budget; an early indicator that fails}
+\subsection{28. Other ways to meet a budget}
+\begin{frame}{Backup: other ways to meet a budget}
 \small
 \textbf{Gradient accumulation}
 \begin{itemize}
@@ -681,12 +682,6 @@ ViT-B, blocks 6--11 $-$ all & (known) & $-$1.66 $\pm$ 0.24 & $+$0.061 $\pm$ 0.00
   \item same update for ViT-B / DeiT-B (per-token normalisation, no dropout): an argument, not run
   \item then placement mainly buys \textbf{time}: epochs 14\% (block 3) to 28\% (block 6) shorter
   \item step time of accumulation and gradient checkpointing: not measured
-\end{itemize}
-\medskip
-\textbf{Validation loss after epoch 1 as a predictor of the final ranking}
-\begin{itemize}
-  \item agreement of the two rankings (Kendall's $\tau$; 1 = same order): 0.62 (ViT-B), 0.24 (Swin-B); 7 configurations each
-  \item early-starting placements learn slowly at first and finish high
 \end{itemize}
 \end{frame}
 

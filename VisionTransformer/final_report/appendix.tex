@@ -130,7 +130,7 @@ config & (vs full FT) & (vs full FT) & optimiser (ms per batch) & total (h), tra
 \rawinput{data/tab_time.tex}
 \bottomrule
 \end{tabular}
-\caption{Training time (mean over 5 seeds). Train and validation epoch: one pass over the 45,000 training images
+\caption{Training time (mean over 5 seeds; standard deviation of the epoch times at most 1.2~s for training and 0.04~s for validation). Train and validation epoch: one pass over the 45,000 training images
 and, without gradients, over the 5,000 validation images. Forward / backward / optimiser: time per training batch of
 64 images. The total time of a run is the epoch time multiplied by the number of epochs before early stopping, which
 differs between configurations; it is listed for completeness and is not used to compare configurations.}
